@@ -9,7 +9,6 @@ import {
     Trash2,
     Globe,
     Star,
-    Star,
     MessageSquare,
     TrendingUp,
     BarChart3,
@@ -23,7 +22,6 @@ const Dashboard = () => {
     const [stats, setStats] = useState({
         totalPosts: 0,
         totalBlogViews: 0,
-        totalComments: 0,
         totalComments: 0,
         totalSiteVisits: 0,
         uniqueVisitors: 0,
