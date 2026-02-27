@@ -17,9 +17,26 @@ const getAdminStats = async (req, res, next) => {
         // Average Rating & Total Ratings
         const [ratings] = await pool.query("SELECT COUNT(*) as count, COALESCE(AVG(rating), 0) as avgRating FROM ratings");
 
-        // Unique Visitors
-        const [uniqueVisitors] = await pool.query("SELECT COUNT(*) as count FROM unique_visitors");
-        const uniqueCount = uniqueVisitors[0].count || 0;
+        // Unique Visitors safely
+        let uniqueCount = 0;
+        try {
+            const [uniqueVisitors] = await pool.query("SELECT COUNT(*) as count FROM unique_visitors");
+            uniqueCount = uniqueVisitors[0].count || 0;
+        } catch (e) {
+            // Table might not exist yet, let's create it for convenience on cloud deployments
+            try {
+                await pool.query(`CREATE TABLE IF NOT EXISTS unique_visitors (
+                    id INT AUTO_INCREMENT PRIMARY KEY,
+                    ip_address VARCHAR(50) UNIQUE NOT NULL,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )`);
+                const [uniqueVisitors] = await pool.query("SELECT COUNT(*) as count FROM unique_visitors");
+                uniqueCount = uniqueVisitors[0].count || 0;
+            } catch (createErr) {
+                console.error("Failed to create unique_visitors table:", createErr);
+            }
+        }
+
         const totalVisitsCount = siteStats[0]?.total_visits || 0;
 
         // Calculate Repeated Views
