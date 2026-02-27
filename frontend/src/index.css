@@ -22,11 +22,11 @@
   }
 
   .shadow-soft {
-    @apply shadow-[0_8px_30px_rgba(0, 0, 0, 0.04)];
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.04);
   }
 
   .shadow-neon-primary {
-    @apply shadow-[0_0_20px_rgba(37, 99, 235, 0.3)];
+    box-shadow: 0 0 20px rgba(37, 99, 235, 0.3);
   }
 
   @keyframes fadeInUp {
