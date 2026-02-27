@@ -1,11 +1,14 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, Link, NavLink } from 'react-router-dom';
-import { Menu, X, Sun, Moon, Search } from 'lucide-react';
+import { Menu, X, Sun, Moon, Search, ChevronDown } from 'lucide-react';
+import api from '../services/api';
 
 const Header = () => {
     const [isOpen, setIsOpen] = useState(false);
     const [theme, setTheme] = useState(localStorage.getItem('theme') || 'light');
     const [searchQuery, setSearchQuery] = useState('');
+    const [categories, setCategories] = useState([]);
+    const [isCatOpen, setIsCatOpen] = useState(false);
     const navigate = useNavigate();
 
     const handleSearch = (e) => {
@@ -16,6 +19,18 @@ const Header = () => {
             setIsOpen(false);
         }
     };
+
+    useEffect(() => {
+        const fetchCategories = async () => {
+            try {
+                const { data } = await api.get('/categories');
+                setCategories(data || []);
+            } catch (err) {
+                console.error('Failed to fetch categories', err);
+            }
+        };
+        fetchCategories();
+    }, []);
 
     useEffect(() => {
         if (theme === 'dark') {
@@ -31,7 +46,7 @@ const Header = () => {
     };
 
     const navLinks = [
-        { name: 'Blog', path: '/' },
+        { name: 'Home', path: '/' },
         { name: 'Contact', path: '/contact' },
     ];
 
@@ -49,36 +64,43 @@ const Header = () => {
                         </span>
                     </Link>
 
-                    {/* Search Bar Desktop */}
-                    <div className="hidden md:flex flex-grow max-w-md mx-4">
-                        <form onSubmit={handleSearch} className="relative w-full">
-                            <input
-                                type="text"
-                                placeholder="Search articles..."
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
-                                className="w-full bg-gray-100 dark:bg-dark-border border-none rounded-full py-2 pl-10 pr-4 text-sm focus:ring-2 focus:ring-primary-500 dark:text-white transition-all shadow-sm"
-                            />
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
-                        </form>
-                    </div>
-
                     {/* Desktop Nav */}
-                    <div className="hidden md:flex items-center space-x-8 flex-shrink-0">
-                        <nav className="flex space-x-6">
-                            {navLinks.map((link) => (
-                                <NavLink
-                                    key={link.name}
-                                    to={link.path}
-                                    className={({ isActive }) =>
-                                        `font-medium transition-colors hover:text-primary-600 dark:hover:text-primary-400 text-sm tracking-wide ${isActive ? 'text-primary-600 dark:text-primary-400 font-semibold' : 'text-gray-600 dark:text-gray-300'
-                                        }`
-                                    }
-                                >
-                                    {link.name}
-                                </NavLink>
-                            ))}
+                    <div className="hidden md:flex items-center space-x-8 flex-shrink-0 ml-auto">
+                        <nav className="flex items-center space-x-6">
+                            <NavLink to="/" className={({ isActive }) => `font-medium transition-colors hover:text-primary-600 dark:hover:text-primary-400 text-sm tracking-wide ${isActive ? 'text-primary-600 dark:text-primary-400 font-semibold' : 'text-gray-600 dark:text-gray-300'}`}>
+                                Home
+                            </NavLink>
+
+                            {/* Categories Dropdown */}
+                            <div className="relative group"
+                                onMouseEnter={() => setIsCatOpen(true)}
+                                onMouseLeave={() => setIsCatOpen(false)}
+                            >
+                                <button className="flex items-center gap-1 font-medium text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 text-sm tracking-wide transition-colors py-2">
+                                    Categories <ChevronDown size={14} className={`transition-transform duration-300 ${isCatOpen ? 'rotate-180' : ''}`} />
+                                </button>
+
+                                {isCatOpen && (
+                                    <div className="absolute top-full left-0 w-48 bg-white dark:bg-dark-card border border-gray-100 dark:border-dark-border rounded-xl shadow-xl py-2 mt-0 animate-fade-in-up transition-all z-[60]">
+                                        <div className="px-4 py-2 text-[10px] font-bold text-gray-400 uppercase tracking-widest border-b border-gray-50 dark:border-dark-border mb-1">Explore Topics</div>
+                                        {categories.map((cat) => (
+                                            <Link
+                                                key={cat.id}
+                                                to={`/?category=${cat.id}`}
+                                                className="block px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-primary-50 dark:hover:bg-primary-900/20 hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
+                                            >
+                                                {cat.name}
+                                            </Link>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+
+                            <NavLink to="/contact" className={({ isActive }) => `font-medium transition-colors hover:text-primary-600 dark:hover:text-primary-400 text-sm tracking-wide ${isActive ? 'text-primary-600 dark:text-primary-400 font-semibold' : 'text-gray-600 dark:text-gray-300'}`}>
+                                Contact
+                            </NavLink>
                         </nav>
+
                         <div className="flex items-center gap-4 pl-4 border-l border-gray-200 dark:border-dark-border">
                             <button
                                 onClick={toggleTheme}
@@ -91,7 +113,7 @@ const Header = () => {
                     </div>
 
                     {/* Mobile Menu Button */}
-                    <div className="flex items-center md:hidden gap-4">
+                    <div className="flex items-center md:hidden gap-4 ml-auto">
                         <button
                             onClick={toggleTheme}
                             className="p-2 text-gray-500 dark:text-gray-400"
@@ -109,28 +131,31 @@ const Header = () => {
 
                 {/* Mobile Dropdown */}
                 {isOpen && (
-                    <div className="md:hidden absolute left-0 w-full bg-white dark:bg-dark-card border-b border-gray-100 dark:border-dark-border shadow-lg animate-fade-in-down origin-top py-6 px-6">
-                        <form onSubmit={handleSearch} className="relative w-full mb-6">
-                            <input
-                                type="text"
-                                placeholder="Search articles..."
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
-                                className="w-full bg-gray-100 dark:bg-dark-border border-none rounded-xl py-3 pl-12 pr-4 text-base focus:ring-2 focus:ring-primary-500 dark:text-white transition-all shadow-sm"
-                            />
-                            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
-                        </form>
-                        <nav className="flex flex-col space-y-4 items-center">
-                            {navLinks.map((link) => (
-                                <NavLink
-                                    key={link.name}
-                                    to={link.path}
-                                    onClick={() => setIsOpen(false)}
-                                    className="w-full text-center text-lg font-medium text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors py-2 border-b border-gray-100 dark:border-dark-border last:border-0"
-                                >
-                                    {link.name}
-                                </NavLink>
-                            ))}
+                    <div className="md:hidden absolute left-0 w-full bg-white dark:bg-dark-card border-b border-gray-100 dark:border-dark-border shadow-lg animate-fade-in-down origin-top py-6 px-6 z-[50]">
+                        <nav className="flex flex-col space-y-4">
+                            <Link to="/" onClick={() => setIsOpen(false)} className="text-lg font-medium text-gray-700 dark:text-gray-300 hover:text-primary-600 border-b border-gray-50 dark:border-dark-border pb-2">
+                                Home
+                            </Link>
+
+                            <div className="space-y-2">
+                                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest pl-1">Categories</p>
+                                <div className="grid grid-cols-2 gap-2">
+                                    {categories.map((cat) => (
+                                        <Link
+                                            key={cat.id}
+                                            to={`/?category=${cat.id}`}
+                                            onClick={() => setIsOpen(false)}
+                                            className="px-3 py-2 text-sm bg-gray-50 dark:bg-dark-bg text-gray-700 dark:text-gray-300 rounded-lg hover:text-primary-600"
+                                        >
+                                            {cat.name}
+                                        </Link>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <Link to="/contact" onClick={() => setIsOpen(false)} className="text-lg font-medium text-gray-700 dark:text-gray-300 hover:text-primary-600 border-t border-gray-50 dark:border-dark-border pt-4">
+                                Contact
+                            </Link>
                         </nav>
                     </div>
                 )}

@@ -12,15 +12,18 @@ const BlogListing = () => {
     const [pages, setPages] = useState(1);
     const location = useLocation();
 
-    // Get search from URL if present
+    // Get search and category from URL if present
     const queryParams = new URLSearchParams(location.search);
     const urlSearch = queryParams.get('search') || '';
+    const urlCategory = queryParams.get('category') || '';
+
     const [search, setSearch] = useState(urlSearch);
+    const [category, setCategory] = useState(urlCategory);
 
     const fetchPosts = async () => {
         setLoading(true);
         try {
-            const { data } = await api.get(`/posts?page=${page}&limit=10&search=${search}`);
+            const { data } = await api.get(`/posts?page=${page}&limit=10&search=${search}&category=${category}`);
             setPosts(data.posts || []);
             setPages(data.pages || 1);
 
@@ -42,12 +45,13 @@ const BlogListing = () => {
 
     useEffect(() => {
         setSearch(urlSearch);
+        setCategory(urlCategory);
         setPage(1);
-    }, [urlSearch]);
+    }, [urlSearch, urlCategory]);
 
     useEffect(() => {
         fetchPosts();
-    }, [page, search]);
+    }, [page, search, category]);
 
     // Track site visit once on mount
     useEffect(() => {

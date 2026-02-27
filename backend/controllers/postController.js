@@ -9,23 +9,45 @@ const getPosts = async (req, res, next) => {
         const page = parseInt(req.query.page) || 1;
         const limit = parseInt(req.query.limit) || 10;
         const offset = (page - 1) * limit;
+        const search = req.query.search ? `%${req.query.search}%` : null;
+        const categoryId = req.query.category || null;
 
-        let query = "SELECT p.*, c.name as category_name, u.name as author_name FROM posts p LEFT JOIN categories c ON p.category_id = c.id LEFT JOIN users u ON p.author_id = u.id WHERE p.status = 'published' ORDER BY p.created_at DESC LIMIT ? OFFSET ?";
-        let countQuery = "SELECT COUNT(*) as total FROM posts WHERE status = 'published'";
+        let query = `
+            SELECT p.*, c.name as category_name, u.name as author_name 
+            FROM posts p 
+            LEFT JOIN categories c ON p.category_id = c.id 
+            LEFT JOIN users u ON p.author_id = u.id 
+            WHERE p.status = 'published'
+        `;
+        let countQuery = `
+            SELECT COUNT(*) as total 
+            FROM posts p 
+            LEFT JOIN categories c ON p.category_id = c.id 
+            WHERE p.status = 'published'
+        `;
 
-        // Add Search logic if needed
-        if (req.query.search) {
-            const search = `%${req.query.search}%`;
-            query = "SELECT p.*, c.name as category_name, u.name as author_name FROM posts p LEFT JOIN categories c ON p.category_id = c.id LEFT JOIN users u ON p.author_id = u.id WHERE p.status = 'published' AND (p.title LIKE ? OR p.content LIKE ? OR c.name LIKE ?) ORDER BY p.created_at DESC LIMIT ? OFFSET ?";
-            countQuery = "SELECT COUNT(*) as total FROM posts p LEFT JOIN categories c ON p.category_id = c.id WHERE p.status = 'published' AND (p.title LIKE ? OR p.content LIKE ? OR c.name LIKE ?)";
+        const queryParams = [];
+        const countParams = [];
 
-            const [posts] = await pool.query(query, [search, search, search, limit, offset]);
-            const [totalRows] = await pool.query(countQuery, [search, search, search]);
-            return res.json({ posts, total: totalRows[0].total, page, pages: Math.ceil(totalRows[0].total / limit) });
+        if (search) {
+            query += " AND (p.title LIKE ? OR p.content LIKE ? OR c.name LIKE ?)";
+            countQuery += " AND (p.title LIKE ? OR p.content LIKE ? OR c.name LIKE ?)";
+            queryParams.push(search, search, search);
+            countParams.push(search, search, search);
         }
 
-        const [posts] = await pool.query(query, [limit, offset]);
-        const [totalRows] = await pool.query(countQuery);
+        if (categoryId) {
+            query += " AND p.category_id = ?";
+            countQuery += " AND p.category_id = ?";
+            queryParams.push(categoryId);
+            countParams.push(categoryId);
+        }
+
+        query += " ORDER BY p.created_at DESC LIMIT ? OFFSET ?";
+        queryParams.push(limit, offset);
+
+        const [posts] = await pool.query(query, queryParams);
+        const [totalRows] = await pool.query(countQuery, countParams);
 
         res.json({
             posts,
