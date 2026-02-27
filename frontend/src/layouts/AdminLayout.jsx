@@ -16,7 +16,7 @@ const AdminLayout = () => {
             {/* Sidebar sidebar */}
             <aside className="w-64 bg-white dark:bg-dark-card shadow-soft h-full flex flex-col transition-colors">
                 <div className="p-6 border-b border-gray-100 dark:border-dark-border">
-                    <h2 className="text-2xl font-heading font-bold text-primary-600 dark:text-primary-400">Admin Panel</h2>
+                    <h2 className="text-xl font-heading font-bold text-primary-600 dark:text-primary-400">DailyUpdates Dashboard</h2>
                 </div>
                 <nav className="flex-1 p-4 space-y-2">
                     <Link to="/admin" className="flex items-center space-x-3 p-3 text-gray-700 dark:text-gray-300 hover:bg-primary-50 dark:hover:bg-dark-border rounded-lg transition-colors">

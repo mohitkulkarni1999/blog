@@ -42,10 +42,10 @@ const Header = () => {
                     {/* Logo */}
                     <Link to="/" className="flex items-center gap-2 group flex-shrink-0">
                         <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-primary-600 to-primary-400 flex items-center justify-center text-white font-heading font-bold text-xl shadow-neon group-hover:scale-105 transition-transform duration-300">
-                            P
+                            D
                         </div>
                         <span className="font-heading font-bold text-2xl tracking-tight text-gray-900 dark:text-white hidden sm:inline">
-                            ProBlog<span className="text-primary-600 dark:text-primary-400">.</span>
+                            DailyUpdatesHub<span className="text-primary-600 dark:text-primary-400">.</span>
                         </span>
                     </Link>
 

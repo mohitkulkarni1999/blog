@@ -11,11 +11,11 @@ const Footer = () => {
                     <div className="col-span-1 md:col-span-1 flex flex-col items-start gap-4">
                         <Link to="/" className="flex items-center gap-2 group">
                             <span className="font-heading font-bold text-2xl tracking-tight text-gray-900 dark:text-white">
-                                ProBlog<span className="text-primary-600 dark:text-primary-400">.</span>
+                                DailyUpdatesHub<span className="text-primary-600 dark:text-primary-400">.</span>
                             </span>
                         </Link>
                         <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed mt-2">
-                            Empowering developers and content creators with premium insights, tutorials, and industry standard best practices for full-stack development.
+                            Providing daily updates, news, and professional insights across technology, lifestyle, and business.
                         </p>
                     </div>
 
@@ -63,7 +63,7 @@ const Footer = () => {
                 {/* Bottom */}
                 <div className="flex flex-col md:flex-row items-center justify-between border-t border-gray-100 dark:border-dark-border mt-12 pt-8">
                     <p className="text-sm text-gray-500 dark:text-gray-400">
-                        &copy; {new Date().getFullYear()} ProBlog. All rights reserved.
+                        &copy; {new Date().getFullYear()} DailyUpdatesHub. All rights reserved.
                     </p>
                     <div className="flex space-x-4 mt-4 md:mt-0">
                         <a href="#" className="text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors"><Facebook size={18} /></a>

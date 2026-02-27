@@ -72,7 +72,7 @@ const Login = () => {
                                         type="email"
                                         required
                                         className="input-field pl-12 h-12 bg-gray-50/50 dark:bg-dark-bg border-gray-200 dark:border-dark-border focus:bg-white dark:focus:bg-dark-card transition-all"
-                                        placeholder="admin@problog.com"
+                                        placeholder="admin@dailyupdateshub.in"
                                         value={email}
                                         onChange={(e) => setEmail(e.target.value)}
                                     />
