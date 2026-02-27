@@ -47,12 +47,13 @@ const Header = () => {
                 <div className={`relative flex justify-between items-center px-6 py-3 rounded-2xl transition-all duration-500 shadow-2xl ${scrolled ? 'bg-white/70 dark:bg-dark-card/70 backdrop-blur-xl border border-white/20 dark:border-white/5' : 'bg-transparent border border-transparent'}`}>
 
                     {/* Brand Logo */}
-                    <Link to="/" className="flex items-center gap-3 group">
-                        <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-primary-600 to-indigo-500 flex items-center justify-center text-white font-heading font-black text-xl shadow-neon-primary group-hover:scale-105 transition-transform duration-300">
+                    <Link to="/" className="flex items-center gap-2 md:gap-3 group shrink-0">
+                        <div className="w-8 h-8 md:w-10 md:h-10 rounded-xl bg-gradient-to-tr from-primary-600 to-indigo-500 flex items-center justify-center text-white font-heading font-black text-lg md:text-xl shadow-neon-primary group-hover:scale-105 transition-transform duration-300">
                             D
                         </div>
-                        <span className={`font-heading font-black text-xl tracking-tighter transition-colors duration-300 ${scrolled ? 'text-gray-900 dark:text-white' : 'text-gray-900 dark:text-white md:text-gray-900'}`}>
-                            DailyUpdates<span className="text-primary-600">Hub</span>
+                        <span className={`font-heading font-black text-lg md:text-xl tracking-tighter transition-colors duration-300 ${scrolled ? 'text-gray-900 dark:text-white' : 'text-gray-900 dark:text-white md:text-gray-900'}`}>
+                            DailyUpdates<span className="text-primary-600 hidden sm:inline">Hub</span>
+                            <span className="text-primary-600 sm:hidden">H</span>
                         </span>
                     </Link>
 
@@ -95,10 +96,10 @@ const Header = () => {
                     </nav>
 
                     {/* Actions */}
-                    <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-2 md:gap-4 shrink-0">
                         <button
                             onClick={toggleTheme}
-                            className="p-2.5 bg-gray-100 dark:bg-white/5 text-gray-500 dark:text-gray-400 hover:text-primary-600 transition-all rounded-xl"
+                            className="p-2 md:p-2.5 bg-gray-100 dark:bg-white/5 text-gray-500 dark:text-gray-400 hover:text-primary-600 transition-all rounded-xl"
                             aria-label="Toggle Theme"
                         >
                             {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
@@ -106,7 +107,7 @@ const Header = () => {
 
                         <button
                             onClick={() => setIsOpen(!isOpen)}
-                            className="md:hidden p-2.5 bg-gray-100 dark:bg-white/5 text-gray-900 dark:text-white rounded-xl active:scale-95 transition-all"
+                            className="md:hidden p-2 md:p-2.5 bg-gray-100 dark:bg-white/5 text-gray-900 dark:text-white rounded-xl active:scale-95 transition-all"
                         >
                             {isOpen ? <X size={20} /> : <Menu size={20} />}
                         </button>
