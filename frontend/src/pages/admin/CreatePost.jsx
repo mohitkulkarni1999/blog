@@ -50,15 +50,7 @@ const CreatePost = () => {
 
             const { data } = await api.post('/upload', formDataUpload, config);
 
-            // Assuming API runs on port 5000 and frontend on 5173/5174 in dev,
-            // we should prepend the backend URL if we want it to work consistently.
-            // Actually, we configured it so `/blogimages/...` is returned.
-            // The frontend needs to point to the backend's address to see it unless it's on the same origin.
-            // Let's use the import.meta.env.VITE_API_URL and strip /api to get the root URL
-            const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
-            const serverUrl = apiUrl.replace('/api', '');
-
-            setFormData({ ...formData, featured_image: serverUrl + data.image });
+            setFormData({ ...formData, featured_image: data.image });
             setStatusMsg({ type: 'success', msg: 'Image uploaded successfully' });
         } catch (error) {
             console.error(error);
@@ -79,13 +71,9 @@ const CreatePost = () => {
             const config = { headers: { 'Content-Type': 'multipart/form-data' } };
             const { data } = await api.post('/upload/multiple', formDataUpload, config);
 
-            const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
-            const serverUrl = apiUrl.replace('/api', '');
-            const newImages = data.images.map(img => serverUrl + img || '');
-
             setFormData(prev => ({
                 ...prev,
-                additional_images: [...prev.additional_images, ...newImages]
+                additional_images: [...prev.additional_images, ...data.images]
             }));
             setStatusMsg({ type: 'success', msg: `${files.length} images uploaded` });
         } catch (error) {

@@ -1,53 +1,46 @@
 const express = require('express');
 const router = express.Router();
 const multer = require('multer');
-const path = require('path');
+const cloudinary = require('cloudinary').v2;
+const { CloudinaryStorage } = require('multer-storage-cloudinary');
 const { protect, admin } = require('../middlewares/authMiddleware');
 
-const storage = multer.diskStorage({
-    destination(req, file, cb) {
-        cb(null, path.join(__dirname, '../../frontend/blogimages'));
+// Cloudinary Configuration
+cloudinary.config({
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME || 'dfsjmvcew',
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET
+});
+
+// Configure Storage
+const storage = new CloudinaryStorage({
+    cloudinary: cloudinary,
+    params: {
+        folder: 'blog_images',
+        allowed_formats: ['jpg', 'jpeg', 'png', 'webp', 'gif'],
     },
-    filename(req, file, cb) {
-        cb(null, `${file.fieldname}-${Date.now()}${path.extname(file.originalname)}`);
-    }
 });
 
-function checkFileType(file, cb) {
-    const filetypes = /jpg|jpeg|png|webp|gif/;
-    const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
-    const mimetype = filetypes.test(file.mimetype);
+const upload = multer({ storage });
 
-    if (extname && mimetype) {
-        return cb(null, true);
-    } else {
-        cb('Images only!');
-    }
-}
-
-const upload = multer({
-    storage,
-    fileFilter: function (req, file, cb) {
-        checkFileType(file, cb);
-    }
-});
-
+// Single Image Upload
 router.post('/', protect, admin, upload.single('image'), (req, res) => {
     if (req.file) {
         res.send({
-            message: 'Image uploaded',
-            image: `/blogimages/${req.file.filename}`
+            message: 'Image uploaded to Cloudinary',
+            image: req.file.path // This returns the full URL
         });
     } else {
         res.status(400).send({ message: 'No image uploaded' });
     }
 });
 
+// Multiple Images Upload
 router.post('/multiple', protect, admin, upload.array('images', 10), (req, res) => {
     if (req.files && req.files.length > 0) {
-        const paths = req.files.map(file => `/blogimages/${file.filename}`);
+        const paths = req.files.map(file => file.path); // Full URLs
         res.send({
-            message: 'Images uploaded',
+            message: 'Images uploaded to Cloudinary',
             images: paths
         });
     } else {

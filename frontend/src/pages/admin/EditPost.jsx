@@ -65,9 +65,7 @@ const EditPost = () => {
         try {
             const config = { headers: { 'Content-Type': 'multipart/form-data' } };
             const { data } = await api.post('/upload', formDataUpload, config);
-            const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
-            const serverUrl = apiUrl.replace('/api', '');
-            setFormData({ ...formData, featured_image: serverUrl + data.image });
+            setFormData({ ...formData, featured_image: data.image });
             setStatusMsg({ type: 'success', msg: 'Featured image updated' });
         } catch (error) {
             console.error(error);
@@ -88,13 +86,9 @@ const EditPost = () => {
         try {
             const config = { headers: { 'Content-Type': 'multipart/form-data' } };
             const { data } = await api.post('/upload/multiple', formDataUpload, config);
-            const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
-            const serverUrl = apiUrl.replace('/api', '');
-            const newImages = data.images.map(img => serverUrl + img);
-
             setFormData(prev => ({
                 ...prev,
-                additional_images: [...prev.additional_images, ...newImages]
+                additional_images: [...prev.additional_images, ...data.images]
             }));
             setStatusMsg({ type: 'success', msg: `${files.length} images added` });
         } catch (error) {
