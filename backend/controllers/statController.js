@@ -17,11 +17,21 @@ const getAdminStats = async (req, res, next) => {
         // Average Rating & Total Ratings
         const [ratings] = await pool.query("SELECT COUNT(*) as count, COALESCE(AVG(rating), 0) as avgRating FROM ratings");
 
+        // Unique Visitors
+        const [uniqueVisitors] = await pool.query("SELECT COUNT(*) as count FROM unique_visitors");
+        const uniqueCount = uniqueVisitors[0].count || 0;
+        const totalVisitsCount = siteStats[0]?.total_visits || 0;
+
+        // Calculate Repeated Views
+        const repeatViews = Math.max(0, totalVisitsCount - uniqueCount);
+
         res.json({
             totalPosts: posts[0].count || 0,
             totalBlogViews: posts[0].views || 0,
             totalComments: comments[0].count || 0,
-            totalSiteVisits: siteStats[0]?.total_visits || 0,
+            totalSiteVisits: totalVisitsCount,
+            uniqueVisitors: uniqueCount,
+            repeatViews: repeatViews,
             averageRating: parseFloat(ratings[0].avgRating).toFixed(1),
             totalRatings: ratings[0].count || 0
         });
@@ -35,7 +45,18 @@ const getAdminStats = async (req, res, next) => {
 // @access  Public
 const trackVisit = async (req, res, next) => {
     try {
+        const clientIp = req.headers['x-forwarded-for'] || req.connection.remoteAddress || req.socket.remoteAddress;
+
+        // Bump total visits strictly
         await pool.query("UPDATE site_stats SET total_visits = total_visits + 1 WHERE id = 1");
+
+        // Attempt to log unique visitor (Ignore error if duplicate ip)
+        if (clientIp) {
+            try {
+                await pool.query("INSERT IGNORE INTO unique_visitors (ip_address) VALUES (?)", [clientIp]);
+            } catch (err) { }
+        }
+
         res.status(200).json({ message: 'Visit tracked' });
     } catch (error) {
         next(error);

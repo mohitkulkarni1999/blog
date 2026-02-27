@@ -9,9 +9,12 @@ import {
     Trash2,
     Globe,
     Star,
+    Star,
     MessageSquare,
     TrendingUp,
-    BarChart3
+    BarChart3,
+    UserCircle,
+    RotateCw
 } from 'lucide-react';
 import api from '../../services/api';
 
@@ -21,7 +24,10 @@ const Dashboard = () => {
         totalPosts: 0,
         totalBlogViews: 0,
         totalComments: 0,
+        totalComments: 0,
         totalSiteVisits: 0,
+        uniqueVisitors: 0,
+        repeatViews: 0,
         averageRating: 0,
         totalRatings: 0
     });
@@ -39,6 +45,8 @@ const Dashboard = () => {
                 totalBlogViews: 0,
                 totalComments: 0,
                 totalSiteVisits: 0,
+                uniqueVisitors: 0,
+                repeatViews: 0,
                 averageRating: 0,
                 totalRatings: 0
             });
@@ -67,11 +75,32 @@ const Dashboard = () => {
 
     const statCards = [
         {
-            title: 'Site Visits',
+            title: 'Total Site Visits',
             value: stats.totalSiteVisits,
             icon: <Globe size={24} />,
             color: 'text-indigo-600 bg-indigo-100 dark:text-indigo-400 dark:bg-indigo-900/30',
             desc: 'Total home page visitors'
+        },
+        {
+            title: 'Unique Visitors',
+            value: stats.uniqueVisitors,
+            icon: <UserCircle size={24} />,
+            color: 'text-emerald-600 bg-emerald-100 dark:text-emerald-400 dark:bg-emerald-900/30',
+            desc: 'Individual unique devices'
+        },
+        {
+            title: 'Returning Views',
+            value: stats.repeatViews,
+            icon: <RotateCw size={24} />,
+            color: 'text-cyan-600 bg-cyan-100 dark:text-cyan-400 dark:bg-cyan-900/30',
+            desc: 'Repeated views from same IPs'
+        },
+        {
+            title: 'Total Posts',
+            value: stats.totalPosts,
+            icon: <FileText size={24} />,
+            color: 'text-blue-600 bg-blue-100 dark:text-blue-400 dark:bg-blue-900/30',
+            desc: 'Articles published'
         },
         {
             title: 'Blog Reads',
@@ -195,8 +224,8 @@ const Dashboard = () => {
                                         </td>
                                         <td className="px-6 py-5">
                                             <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${post.status === 'published'
-                                                    ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
-                                                    : 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
+                                                ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                                                : 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
                                                 }`}>
                                                 {post.status || 'draft'}
                                             </span>
