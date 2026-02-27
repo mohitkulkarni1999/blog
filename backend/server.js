@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
+const compression = require('compression');
 const dotenv = require('dotenv');
 const pool = require('./config/db');
 const path = require('path');
@@ -9,6 +10,8 @@ const path = require('path');
 dotenv.config();
 
 const app = express();
+
+app.use(compression()); // Use compression middleware
 
 // Trust proxy for Render/Cloud platforms
 app.set('trust proxy', 1);
@@ -46,7 +49,9 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Serve Static Uploads
-app.use('/blogimages', express.static(path.join(__dirname, '../frontend/blogimages')));
+app.use('/blogimages', express.static(path.join(__dirname, '../frontend/blogimages'), {
+    maxAge: '1d' // Cache images for 1 day
+}));
 
 // Test Route
 app.get('/', (req, res) => {

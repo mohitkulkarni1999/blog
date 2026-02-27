@@ -23,17 +23,29 @@ const BlogListing = () => {
     const fetchPosts = async () => {
         setLoading(true);
         try {
-            const { data } = await api.get(`/posts?page=${page}&limit=10&search=${search}&category=${category}`);
-            setPosts(data.posts || []);
-            setPages(data.pages || 1);
+            const promises = [
+                api.get(`/posts?page=${page}&limit=10&search=${search}&category=${category}`)
+            ];
 
-            if (featuredPosts.length === 0) {
-                const featRes = await api.get('/posts?limit=5');
-                setFeaturedPosts(featRes.data.posts || []);
+            const fetchFeatured = featuredPosts.length === 0;
+            const fetchCats = categories.length === 0;
+
+            if (fetchFeatured) promises.push(api.get('/posts?limit=5'));
+            if (fetchCats) promises.push(api.get('/categories'));
+
+            const results = await Promise.all(promises);
+
+            const mainData = results[0].data;
+            setPosts(mainData.posts || []);
+            setPages(mainData.pages || 1);
+
+            let nextIdx = 1;
+            if (fetchFeatured) {
+                setFeaturedPosts(results[nextIdx].data.posts || []);
+                nextIdx++;
             }
-            if (categories.length === 0) {
-                const catRes = await api.get('/categories');
-                setCategories(catRes.data || []);
+            if (fetchCats) {
+                setCategories(results[nextIdx].data || []);
             }
         } catch (error) {
             console.error('Failed to fetch posts', error);
@@ -75,6 +87,7 @@ const BlogListing = () => {
                             src={posts[0].featured_image || 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?auto=format&fit=crop&q=80'}
                             className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105"
                             alt={posts[0].title}
+                            loading="eager"
                         />
                         <div className="absolute inset-0 bg-gradient-to-t from-[#0b0e14] via-[#0b0e14]/60 to-transparent"></div>
                     </div>
@@ -171,6 +184,7 @@ const BlogListing = () => {
                                                                     src={post.featured_image || 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?auto=format&fit=crop&q=80'}
                                                                     alt={post.title}
                                                                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-1000"
+                                                                    loading="lazy"
                                                                 />
                                                             </Link>
                                                             <div className="xl:w-2/5 p-6 md:p-12 flex flex-col justify-center">
@@ -204,6 +218,7 @@ const BlogListing = () => {
                                                             src={post.featured_image || 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?auto=format&fit=crop&q=80'}
                                                             className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                                                             alt={post.title}
+                                                            loading="lazy"
                                                         />
                                                         <div className="absolute top-4 left-4">
                                                             <span className="bg-white/90 dark:bg-dark-card/90 backdrop-blur-md text-primary-600 text-[10px] font-black px-3 py-1 rounded-lg uppercase tracking-widest shadow-sm">
@@ -307,6 +322,7 @@ const BlogListing = () => {
                                 src="https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&q=80"
                                 className="absolute inset-0 w-full h-full object-cover opacity-50 group-hover:scale-110 transition-transform duration-1000"
                                 alt="Newsletter"
+                                loading="lazy"
                             />
                             <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent"></div>
                             <div className="relative z-10 w-full">
