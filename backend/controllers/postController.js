@@ -13,10 +13,7 @@ const getPosts = async (req, res, next) => {
         const categoryId = req.query.category || null;
 
         let query = `
-            SELECT 
-                p.id, p.title, p.slug, p.featured_image, p.category_id, 
-                p.author_id, p.created_at, p.view_count, p.meta_description, 
-                p.status, c.name as category_name, u.name as author_name 
+            SELECT p.*, c.name as category_name, u.name as author_name 
             FROM posts p 
             LEFT JOIN categories c ON p.category_id = c.id 
             LEFT JOIN users u ON p.author_id = u.id 
@@ -110,30 +107,28 @@ const getAdminPosts = async (req, res, next) => {
 const getPostBySlug = async (req, res) => {
     try {
         const [posts] = await pool.query(
-            `SELECT p.*, c.name as category_name, u.name as author_name,
-             COALESCE((SELECT AVG(rating) FROM ratings WHERE post_id = p.id), 0) as averageRating,
-             COALESCE((SELECT COUNT(*) FROM ratings WHERE post_id = p.id), 0) as totalRatings
-             FROM posts p 
-             LEFT JOIN categories c ON p.category_id = c.id 
-             LEFT JOIN users u ON p.author_id = u.id 
-             WHERE p.slug = ?`,
+            'SELECT p.*, c.name as category_name, u.name as author_name FROM posts p LEFT JOIN categories c ON p.category_id = c.id LEFT JOIN users u ON p.author_id = u.id WHERE p.slug = ?',
             [req.params.slug]
         );
 
         if (posts.length) {
             const post = posts[0];
 
-            // Run these in parallel to reduce wait time
-            const [imagesQueryRes, commentsQueryRes] = await Promise.all([
-                pool.query('SELECT image_url FROM post_images WHERE post_id = ?', [post.id]),
-                pool.query('SELECT * FROM comments WHERE post_id = ? AND status = "approved" ORDER BY created_at DESC', [post.id]),
-                pool.query('UPDATE posts SET view_count = view_count + 1 WHERE id = ?', [post.id])
-            ]);
-
+            // Increment view count
+            await pool.query('UPDATE posts SET view_count = view_count + 1 WHERE id = ?', [post.id]);
             post.view_count += 1;
-            post.averageRating = parseFloat(post.averageRating).toFixed(1);
-            post.additional_images = imagesQueryRes[0].map(img => img.image_url);
-            post.comments = commentsQueryRes[0];
+
+            // Fetch average rating
+            const [ratingRes] = await pool.query(
+                'SELECT AVG(rating) as averageRating, COUNT(*) as totalRatings FROM ratings WHERE post_id = ?',
+                [post.id]
+            );
+            post.averageRating = parseFloat(ratingRes[0].averageRating || 0).toFixed(1);
+            post.totalRatings = ratingRes[0].totalRatings || 0;
+
+            // Fetch additional images
+            const [imagesRes] = await pool.query('SELECT image_url FROM post_images WHERE post_id = ?', [post.id]);
+            post.additional_images = imagesRes.map(img => img.image_url);
 
             res.json(post);
         } else {

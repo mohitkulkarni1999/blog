@@ -19,15 +19,17 @@ const SingleBlog = () => {
     const fetchPost = async () => {
         try {
             const { data } = await api.get(`/posts/${slug}`);
-
-            const postData = {
+            setPost({
                 ...data,
                 averageRating: data.averageRating || '0.0',
                 totalRatings: data.totalRatings || 0,
                 view_count: data.view_count || 0
-            };
-            setPost(postData);
-            setComments(data.comments || []);
+            });
+
+            if (data.id) {
+                const commentsRes = await api.get(`/comments/post/${data.id}`);
+                setComments(commentsRes.data || []);
+            }
         } catch (error) {
             console.error('Failed to fetch post', error);
         } finally {
@@ -140,8 +142,6 @@ const SingleBlog = () => {
                             src={post.featured_image || 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?auto=format&fit=crop&q=80'}
                             className="w-full h-auto max-h-[750px] object-contain mx-auto block"
                             alt={post.title}
-                            loading="eager"
-                            fetchpriority="high"
                         />
                     </div>
                 </div>
