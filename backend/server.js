@@ -10,8 +10,8 @@ dotenv.config();
 
 const app = express();
 
-// Trust proxy for Render/Cloud platforms
-app.set('trust proxy', 1);
+// Trust proxy for Render/Cloud platforms (Must be true for express-rate-limit)
+app.set('trust proxy', true);
 
 // Security Middleware
 app.use(helmet({ crossOriginResourcePolicy: false })); // Allow cross-origin image requests
@@ -63,7 +63,13 @@ app.use('/api/stats', require('./routes/statRoutes'));
 app.use('/api/upload', require('./routes/uploadRoutes'));
 
 // Error Handling Middleware
-app.use(require('./middlewares/errorMiddleware'));
+app.use((err, req, res, next) => {
+    console.error('SERVER ERROR:', err.stack);
+    res.status(500).json({
+        message: 'Internal Server Error',
+        error: process.env.NODE_ENV === 'production' ? 'Check server logs' : err.message
+    });
+});
 
 const PORT = process.env.PORT || 5000;
 
