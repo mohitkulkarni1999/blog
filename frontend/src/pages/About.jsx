@@ -2,11 +2,11 @@ import { Target, Users, Zap, Award } from 'lucide-react';
 
 const About = () => {
     return (
-        <div className="bg-gray-50 dark:bg-dark-bg min-h-screen pt-12 pb-24 transition-colors duration-300">
+        <div className="bg-gray-50 dark:bg-dark-bg min-h-screen pt-8 md:pt-12 pb-12 md:pb-24 transition-colors duration-300">
             <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-6xl">
 
                 {/* Hero Section */}
-                <div className="text-center max-w-3xl mx-auto mb-20">
+                <div className="text-center max-w-3xl mx-auto mb-12 md:mb-20">
                     <h1 className="text-4xl md:text-5xl font-heading font-bold text-gray-900 dark:text-white leading-tight">
                         About <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary-600 to-primary-400">DailyUpdatesHub</span>
                     </h1>
@@ -16,8 +16,8 @@ const About = () => {
                 </div>
 
                 {/* Values Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-24">
-                    <div className="bg-white dark:bg-dark-card p-8 rounded-3xl shadow-soft border border-gray-100 dark:border-dark-border text-center group hover:border-primary-500 transition-all">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8 mb-16 md:mb-24">
+                    <div className="bg-white dark:bg-dark-card p-6 md:p-8 rounded-3xl shadow-soft border border-gray-100 dark:border-dark-border text-center group hover:border-primary-500 transition-all">
                         <div className="w-14 h-14 rounded-2xl bg-primary-50 dark:bg-primary-900/20 flex items-center justify-center text-primary-600 dark:text-primary-400 mx-auto mb-6 group-hover:scale-110 transition-transform">
                             <Target size={28} />
                         </div>
@@ -48,7 +48,7 @@ const About = () => {
                 </div>
 
                 {/* Content Section */}
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center mb-24">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 md:gap-16 items-center mb-16 md:mb-24">
                     <div className="relative">
                         <img
                             src="https://images.unsplash.com/photo-1522071823991-b9671f9d7f1f?auto=format&fit=crop&q=80"

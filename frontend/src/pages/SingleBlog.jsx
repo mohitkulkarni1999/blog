@@ -99,7 +99,7 @@ const SingleBlog = () => {
         <article className="bg-[#fcfcfd] dark:bg-[#0b0e14] transition-colors duration-500 min-h-screen pb-20">
 
             {/* Content Header Section */}
-            <header className="relative w-full bg-[#0b0e14] pt-32 pb-20 overflow-hidden">
+            <header className="relative w-full bg-[#0b0e14] pt-28 md:pt-32 pb-12 md:pb-20 overflow-hidden">
                 <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[300px] bg-primary-600/10 blur-[100px] rounded-full"></div>
 
                 <div className="container mx-auto px-4 relative z-10">
@@ -135,9 +135,9 @@ const SingleBlog = () => {
             </header>
 
             {/* Featured Image - Responsive Aspect Ratio */}
-            <div className="container mx-auto px-4 -mt-10 mb-20 relative z-20">
+            <div className="container mx-auto px-4 -mt-6 md:-mt-10 mb-10 md:mb-20 relative z-20">
                 <div className="max-w-5xl mx-auto">
-                    <div className="relative overflow-hidden rounded-[2.5rem] shadow-[0_40px_100px_rgba(0,0,0,0.5)] bg-gray-900 border border-white/5">
+                    <div className="relative overflow-hidden rounded-2xl md:rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.5)] md:shadow-[0_40px_100px_rgba(0,0,0,0.5)] bg-gray-900 border border-white/5">
                         <img
                             src={post.featured_image || 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?auto=format&fit=crop&q=80'}
                             className="w-full h-auto max-h-[750px] object-contain mx-auto block"
@@ -160,8 +160,8 @@ const SingleBlog = () => {
                     </div>
 
                     {/* Author Signature */}
-                    <div className="mt-20 p-10 rounded-[2.5rem] glass-card border-gray-100 dark:border-white/5 flex flex-col md:flex-row items-center gap-8 text-center md:text-left">
-                        <div className="w-24 h-24 rounded-[2rem] bg-gradient-to-tr from-primary-600 to-indigo-500 flex items-center justify-center text-white font-black text-4xl shadow-neon-primary flex-shrink-0">
+                    <div className="mt-12 md:mt-20 p-6 md:p-10 rounded-3xl md:rounded-[2.5rem] glass-card border-gray-100 dark:border-white/5 flex flex-col md:flex-row items-center gap-6 md:gap-8 text-center md:text-left">
+                        <div className="w-20 h-20 md:w-24 md:h-24 rounded-2xl md:rounded-[2rem] bg-gradient-to-tr from-primary-600 to-indigo-500 flex items-center justify-center text-white font-black text-3xl md:text-4xl shadow-neon-primary flex-shrink-0">
                             {post.author_name ? post.author_name.charAt(0).toUpperCase() : 'A'}
                         </div>
                         <div>
@@ -171,8 +171,8 @@ const SingleBlog = () => {
                     </div>
 
                     {/* Rating Interactive */}
-                    <div className="mt-12 bg-white dark:bg-dark-card p-10 rounded-[2.5rem] border border-gray-100 dark:border-white/5 shadow-2xl flex flex-col items-center">
-                        <h4 className="text-lg font-heading font-black text-gray-900 dark:text-white uppercase tracking-widest mb-6">Enjoyed this story?</h4>
+                    <div className="mt-8 md:mt-12 bg-white dark:bg-dark-card p-6 md:p-10 rounded-3xl md:rounded-[2.5rem] border border-gray-100 dark:border-white/5 shadow-2xl flex flex-col items-center">
+                        <h4 className="text-base md:text-lg font-heading font-black text-gray-900 dark:text-white uppercase tracking-widest mb-4 md:mb-6">Enjoyed this story?</h4>
                         <div className="flex items-center gap-3">
                             {[1, 2, 3, 4, 5].map((star) => (
                                 <button

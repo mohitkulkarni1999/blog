@@ -108,7 +108,7 @@ const BlogListing = () => {
                     </div>
                 </section>
             ) : (
-                <section className="relative pt-32 pb-16 overflow-hidden bg-white dark:bg-[#0b0e14] border-b border-gray-100 dark:border-white/5">
+                <section className="relative pt-28 md:pt-32 pb-12 md:pb-20 overflow-hidden bg-white dark:bg-[#0b0e14] border-b border-gray-100 dark:border-white/5">
                     <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-primary-500/5 rounded-full blur-[100px] -translate-y-1/2 translate-x-1/2"></div>
                     <div className="container mx-auto px-4 relative z-10 text-center animate-fade-in-up">
                         <h1 className="text-4xl md:text-5xl font-heading font-black text-gray-900 dark:text-white mb-8 tracking-tight">
@@ -134,27 +134,27 @@ const BlogListing = () => {
                 </section>
             )}
 
-            <div className="container mx-auto px-4 mt-16 sm:px-6 lg:px-8">
-                <div className="flex flex-col lg:flex-row gap-12">
+            <div className="container mx-auto px-4 mt-8 md:mt-16 sm:px-6 lg:px-8">
+                <div className="flex flex-col lg:flex-row gap-8 md:gap-12">
 
                     {/* Main Content Column */}
                     <div className="lg:w-2/3 xl:w-[72%]">
                         {loading ? (
-                            <div className="flex justify-center py-20">
+                            <div className="flex justify-center py-10 md:py-20">
                                 <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-primary-600"></div>
                             </div>
                         ) : (
                             <div className="animate-fade-in-up">
 
                                 {/* Heading for List */}
-                                <div className="flex items-center justify-between mb-10">
+                                <div className="flex items-center justify-between mb-6 md:mb-10">
                                     <h3 className="text-xl font-heading font-black text-gray-900 dark:text-white uppercase tracking-widest flex items-center gap-3">
                                         <div className="w-8 h-1 bg-primary-600 rounded-full"></div> Latest Feed
                                     </h3>
                                 </div>
 
                                 {/* Article Grid */}
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-16">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8 mb-10 md:mb-16">
                                     {posts.length === 0 ? (
                                         <div className="col-span-full text-center py-24 bg-white dark:bg-dark-card rounded-3xl border border-dashed border-gray-200 dark:border-dark-border">
                                             <Search className="mx-auto text-gray-300 mb-4" size={50} />
@@ -162,7 +162,41 @@ const BlogListing = () => {
                                         </div>
                                     ) : (
                                         posts.map((post, index) => {
-                                            if (page === 1 && !search && index === 0) return null;
+                                            if (page === 1 && !search && index === 0) {
+                                                return (
+                                                    <div key={post.id} className="relative overflow-hidden rounded-[2rem] bg-white dark:bg-dark-card border border-gray-100 dark:border-dark-border shadow-2xl col-span-full">
+                                                        <div className="flex flex-col xl:flex-row">
+                                                            <Link to={`/blog/${post.slug}`} className="xl:w-3/5 h-[250px] md:h-[450px] overflow-hidden block">
+                                                                <img
+                                                                    src={post.featured_image || 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?auto=format&fit=crop&q=80'}
+                                                                    alt={post.title}
+                                                                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-1000"
+                                                                />
+                                                            </Link>
+                                                            <div className="xl:w-2/5 p-6 md:p-12 flex flex-col justify-center">
+                                                                <div className="flex items-center gap-3 mb-4 md:mb-6">
+                                                                    <span className="bg-primary-600 text-white text-[10px] font-black px-3 py-1 rounded-lg uppercase tracking-widest shadow-neon-primary">
+                                                                        {post.category_name || 'Latest Story'}
+                                                                    </span>
+                                                                    <div className="h-px w-10 bg-white/20"></div>
+                                                                    <span className="text-white/60 text-[10px] font-black uppercase tracking-widest">{new Date(post.created_at).toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' })}</span>
+                                                                </div>
+                                                                <Link to={`/blog/${post.slug}`}>
+                                                                    <h2 className="text-2xl md:text-3xl font-heading font-black text-gray-900 dark:text-white mb-3 md:mb-5 leading-tight group-hover:text-primary-600 transition-colors">
+                                                                        {post.title}
+                                                                    </h2>
+                                                                </Link>
+                                                                <p className="text-gray-500 dark:text-gray-400 text-sm md:text-base leading-relaxed mb-6 md:mb-8 line-clamp-3 font-medium">
+                                                                    {post.meta_description || 'Click to read the full technical article from our team...'}
+                                                                </p>
+                                                                <Link to={`/blog/${post.slug}`} className="bg-primary-600 hover:bg-primary-700 text-white text-xs font-black uppercase tracking-widest px-6 py-3 rounded-xl transition-all shadow-neon-primary hover:gap-4 flex items-center gap-2 w-fit">
+                                                                    Read Full Story <ArrowRight size={16} />
+                                                                </Link>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                );
+                                            }
                                             return (
                                                 <article key={post.id} className="group bg-white dark:bg-dark-card rounded-[2rem] overflow-hidden border border-gray-100 dark:border-dark-border shadow-soft transition-all hover:shadow-2xl hover:-translate-y-2 flex flex-col h-full">
                                                     <Link to={`/blog/${post.slug}`} className="relative h-56 overflow-hidden block">
@@ -227,11 +261,11 @@ const BlogListing = () => {
                     </div>
 
                     {/* Sidebar with Premium Cards */}
-                    <aside className="lg:w-1/3 xl:w-[28%] space-y-10 animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
+                    <aside className="lg:w-1/3 xl:w-[28%] space-y-6 md:space-y-10 animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
 
                         {/* Trending Sidebar */}
-                        <div className="bg-white dark:bg-dark-card p-8 rounded-[2rem] shadow-soft border border-gray-100 dark:border-dark-border overflow-hidden relative">
-                            <h4 className="text-lg font-heading font-black text-gray-900 dark:text-white mb-8 flex items-center gap-3 uppercase tracking-tighter">
+                        <div className="bg-white dark:bg-dark-card p-6 md:p-8 rounded-3xl md:rounded-[2rem] shadow-soft border border-gray-100 dark:border-dark-border overflow-hidden relative">
+                            <h4 className="text-lg font-heading font-black text-gray-900 dark:text-white mb-6 md:mb-8 flex items-center gap-3 uppercase tracking-tighter">
                                 <TrendingUp size={22} className="text-primary-600" /> Hot Right Now
                             </h4>
                             <div className="space-y-8">
@@ -250,8 +284,8 @@ const BlogListing = () => {
                         </div>
 
                         {/* Topics Card */}
-                        <div className="bg-white dark:bg-dark-card p-8 rounded-[2rem] shadow-soft border border-gray-100 dark:border-dark-border">
-                            <h4 className="text-lg font-heading font-black text-gray-900 dark:text-white mb-6 uppercase flex items-center gap-3">
+                        <div className="bg-white dark:bg-dark-card p-6 md:p-8 rounded-3xl md:rounded-[2rem] shadow-soft border border-gray-100 dark:border-dark-border">
+                            <h4 className="text-lg font-heading font-black text-gray-900 dark:text-white mb-4 md:mb-6 uppercase flex items-center gap-3">
                                 <Tag size={20} className="text-primary-600" /> Explore
                             </h4>
                             <div className="flex flex-wrap gap-2">

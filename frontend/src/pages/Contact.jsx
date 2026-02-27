@@ -26,9 +26,9 @@ const Contact = () => {
     const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
 
     return (
-        <div className="bg-gray-50 dark:bg-dark-bg min-h-screen pt-12 pb-24 transition-colors duration-300">
+        <div className="bg-gray-50 dark:bg-dark-bg min-h-screen pt-8 md:pt-12 pb-12 md:pb-24 transition-colors duration-300">
             <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-6xl">
-                <div className="text-center max-w-3xl mx-auto mb-16">
+                <div className="text-center max-w-3xl mx-auto mb-10 md:mb-16">
                     <h1 className="text-4xl md:text-5xl font-heading font-bold text-gray-900 dark:text-white leading-tight">
                         Get in <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary-600 to-primary-400">Touch</span>
                     </h1>
@@ -37,10 +37,10 @@ const Contact = () => {
                     </p>
                 </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-24">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-24">
                     {/* Contact Information */}
-                    <div className="flex flex-col gap-10">
-                        <div className="bg-white dark:bg-dark-card p-8 rounded-2xl shadow-soft border border-gray-100 dark:border-dark-border">
+                    <div className="flex flex-col gap-8 md:gap-10">
+                        <div className="bg-white dark:bg-dark-card p-6 md:p-8 rounded-2xl shadow-soft border border-gray-100 dark:border-dark-border">
                             <h3 className="text-2xl font-heading font-bold text-gray-900 dark:text-white mb-6">Contact Information</h3>
                             <ul className="space-y-6">
                                 <li className="flex items-start gap-4">
@@ -75,7 +75,7 @@ const Contact = () => {
                     </div>
 
                     {/* Contact Form */}
-                    <div className="bg-white dark:bg-dark-card p-8 rounded-2xl shadow-soft border border-gray-100 dark:border-dark-border">
+                    <div className="bg-white dark:bg-dark-card p-6 md:p-8 rounded-2xl shadow-soft border border-gray-100 dark:border-dark-border">
                         <h3 className="text-2xl font-heading font-bold text-gray-900 dark:text-white mb-6">Send a Message</h3>
 
                         {status.msg && (
