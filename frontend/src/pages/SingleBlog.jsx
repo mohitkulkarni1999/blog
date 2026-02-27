@@ -14,7 +14,7 @@ const SingleBlog = () => {
     const [newComment, setNewComment] = useState('');
     const [ratingHover, setRatingHover] = useState(0);
     const [isSubmittingRating, setIsSubmittingRating] = useState(false);
-    const { token } = useAuth(); // Assuming this provides auth status
+    const { token } = useAuth();
 
     const fetchPost = async () => {
         try {
@@ -26,7 +26,6 @@ const SingleBlog = () => {
                 view_count: data.view_count || 0
             });
 
-            // Fetch comments for all users
             if (data.id) {
                 const commentsRes = await api.get(`/comments/post/${data.id}`);
                 setComments(commentsRes.data || []);
@@ -40,24 +39,12 @@ const SingleBlog = () => {
 
     useEffect(() => {
         fetchPost();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
+        window.scrollTo(0, 0);
     }, [slug, token]);
-
-    const handleCommentSubmit = async (e) => {
-        e.preventDefault();
-        if (!newComment.trim() || !post || !token) return;
-        try {
-            await api.post('/comments', { post_id: post.id, comment: newComment });
-            setNewComment('');
-            alert('Comment submitted for approval!');
-        } catch {
-            alert('Must be logged in to comment');
-        }
-    };
 
     const handleRate = async (ratingVal) => {
         if (!token) {
-            alert('Please login to rate this post.');
+            alert('Please login to rate this article.');
             return;
         }
         setIsSubmittingRating(true);
@@ -68,9 +55,9 @@ const SingleBlog = () => {
                 averageRating: data.averageRating,
                 totalRatings: data.totalRatings
             }));
-            alert('Thank you for your rating!');
+            alert('Rating submitted!');
         } catch {
-            alert('Failed to submit rating.');
+            alert('Failed to rate.');
         } finally {
             setIsSubmittingRating(false);
         }
@@ -80,107 +67,114 @@ const SingleBlog = () => {
 
     if (loading) {
         return (
-            <div className="flex justify-center items-center min-h-[60vh]">
-                <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-primary-600"></div>
+            <div className="flex justify-center items-center min-h-screen bg-[#fcfcfd] dark:bg-[#0b0e14]">
+                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-primary-600"></div>
             </div>
         );
     }
 
     if (!post) {
-        return <div className="text-center py-20 text-xl font-heading font-medium dark:text-white">Post not found. <Link to="/blog" className="text-primary-600 underline">Return.</Link></div>;
+        return <div className="text-center py-40 bg-[#fcfcfd] dark:bg-[#0b0e14] min-h-screen">
+            <h2 className="text-2xl font-black text-gray-900 dark:text-white">Post not found.</h2>
+            <Link to="/" className="text-primary-600 font-bold underline mt-4 inline-block">Return to Feed</Link>
+        </div>;
     }
 
     return (
-        <article className="bg-white dark:bg-dark-bg transition-colors duration-300 min-h-screen">
+        <article className="bg-[#fcfcfd] dark:bg-[#0b0e14] transition-colors duration-500 min-h-screen pb-20">
 
-            {/* Hero Section */}
-            <header className="relative w-full h-[50vh] min-h-[400px] flex items-end justify-center bg-gray-900 overflow-hidden">
-                <img
-                    src={post.featured_image || 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?auto=format&fit=crop&q=80'}
-                    className="absolute inset-0 w-full h-full object-cover opacity-60"
-                    alt={post.title}
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-gray-900 via-gray-900/40 to-transparent"></div>
-                <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10 pb-16 pt-32 max-w-4xl">
-                    <Link to="/blog" className="inline-flex items-center text-primary-300 hover:text-white mb-6 transition-colors text-sm font-medium uppercase tracking-wider group">
-                        <ArrowLeft size={16} className="mr-2 group-hover:-translate-x-1 transition-transform" /> Back to Blog
-                    </Link>
-                    <div className="flex items-center gap-3 mb-6">
-                        <span className="bg-primary-600/90 text-white text-xs font-bold px-3 py-1.5 rounded-full uppercase tracking-wider backdrop-blur-sm">
-                            {post.category_name || 'General'}
-                        </span>
-                    </div>
-                    <h1 className="text-4xl md:text-5xl lg:text-6xl font-heading font-extrabold text-white leading-tight drop-shadow-lg mb-6">
-                        {post.title}
-                    </h1>
-                    <div className="flex flex-wrap items-center text-gray-300 text-sm gap-6 font-medium">
-                        <span className="flex items-center gap-2"><User size={16} className="text-primary-400" /> By {post.author_name || 'Admin'}</span>
-                        <span className="flex items-center gap-2"><Clock size={16} className="text-primary-400" /> {new Date(post.created_at).toLocaleDateString()}</span>
-                        <span className="flex items-center gap-2"><Eye size={16} className="text-primary-400" /> {post.view_count} Views</span>
-                        <span className="flex items-center gap-2 text-yellow-500"><Star size={16} fill="currentColor" /> {post.averageRating} ({post.totalRatings})</span>
-                        <button className="flex items-center gap-2 hover:text-white transition-colors ml-auto"><Share2 size={16} /> Share</button>
+            {/* Content Header Section */}
+            <header className="relative w-full bg-[#0b0e14] pt-32 pb-20 overflow-hidden">
+                <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[300px] bg-primary-600/10 blur-[100px] rounded-full"></div>
+
+                <div className="container mx-auto px-4 relative z-10">
+                    <div className="max-w-4xl mx-auto text-center">
+                        <Link to="/" className="inline-flex items-center gap-2 text-primary-400 hover:text-white mb-8 font-black uppercase text-[10px] tracking-widest transition-all hover:-translate-x-2">
+                            <ArrowLeft size={14} /> Back to Hub
+                        </Link>
+
+                        <div className="flex items-center justify-center gap-3 mb-8">
+                            <span className="bg-primary-600 text-white text-[10px] font-black px-4 py-1.5 rounded-lg uppercase tracking-widest shadow-neon-primary">
+                                {post.category_name || 'Insights'}
+                            </span>
+                            <div className="h-px w-8 bg-white/10"></div>
+                            <span className="text-white/40 text-[10px] font-black uppercase tracking-widest">Global Post</span>
+                        </div>
+
+                        <h1 className="text-4xl md:text-6xl lg:text-7xl font-heading font-black text-white leading-tight mb-10 tracking-tighter">
+                            {post.title}
+                        </h1>
+
+                        <div className="flex flex-wrap items-center justify-center gap-x-8 gap-y-4 text-white/50 text-[10px] font-black uppercase tracking-[0.2em]">
+                            <div className="flex items-center gap-3">
+                                <div className="w-8 h-8 rounded-full bg-primary-600 flex items-center justify-center text-white text-xs">
+                                    {post.author_name ? post.author_name.charAt(0) : 'A'}
+                                </div>
+                                <span className="text-white">{post.author_name || 'Admin'}</span>
+                            </div>
+                            <span className="flex items-center gap-2 border-l border-white/10 pl-8"><Clock size={12} className="text-primary-500" /> {new Date(post.created_at).toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' })}</span>
+                            <span className="flex items-center gap-2 border-l border-white/10 pl-8"><Eye size={12} className="text-primary-500" /> {post.view_count} Views</span>
+                        </div>
                     </div>
                 </div>
             </header>
 
-            {/* Content */}
-            <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-16">
-                <div className="max-w-3xl mx-auto">
-                    {/* Prose for Markdown/HTML content styling */}
-                    <div className="prose prose-lg dark:prose-dark max-w-none font-sans prose-img:rounded-xl prose-img:shadow-soft">
+            {/* Featured Image - Responsive Aspect Ratio */}
+            <div className="container mx-auto px-4 -mt-10 mb-20 relative z-20">
+                <div className="max-w-5xl mx-auto">
+                    <div className="relative overflow-hidden rounded-[2.5rem] shadow-[0_40px_100px_rgba(0,0,0,0.5)] bg-gray-900 border border-white/5">
+                        <img
+                            src={post.featured_image || 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?auto=format&fit=crop&q=80'}
+                            className="w-full h-auto max-h-[750px] object-contain mx-auto block"
+                            alt={post.title}
+                        />
+                    </div>
+                </div>
+            </div>
+
+            {/* Main Content Area */}
+            <div className="container mx-auto px-4">
+                <div className="max-w-3xl mx-auto animate-fade-in-up">
+
+                    {/* Sanitized HTML Content */}
+                    <div className="prose prose-lg dark:prose-invert max-w-none font-medium text-gray-700 dark:text-gray-300 leading-relaxed
+                                  prose-headings:font-black prose-headings:tracking-tight prose-headings:text-gray-900 dark:prose-headings:text-white
+                                  prose-a:text-primary-600 dark:prose-a:text-primary-400 prose-a:font-black
+                                  prose-img:rounded-[2rem] prose-img:shadow-2xl prose-blockquote:border-primary-600 prose-blockquote:bg-gray-50 dark:prose-blockquote:bg-white/5 prose-blockquote:p-6 prose-blockquote:rounded-2xl">
                         {parse(cleanContent)}
                     </div>
 
-                    {/* Additional Images Gallery */}
-                    {post.additional_images && post.additional_images.length > 0 && (
-                        <div className="mt-16">
-                            <h3 className="text-2xl font-heading font-bold text-gray-900 dark:text-white mb-6">Article Gallery</h3>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                {post.additional_images.map((img, idx) => (
-                                    <div key={idx} className="group overflow-hidden rounded-2xl shadow-soft border border-gray-100 dark:border-dark-border aspect-video">
-                                        <img
-                                            src={img}
-                                            alt={`Gallery ${idx + 1}`}
-                                            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                                        />
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    )}
-
-                    {/* Author Bio (Placeholder for future) */}
-                    <div className="mt-16 py-8 border-y border-gray-100 dark:border-dark-border flex items-center gap-6">
-                        <div className="w-16 h-16 rounded-full bg-gradient-to-tr from-primary-600 to-primary-400 flex items-center justify-center text-white font-heading font-bold text-2xl shadow-neon flex-shrink-0">
+                    {/* Author Signature */}
+                    <div className="mt-20 p-10 rounded-[2.5rem] glass-card border-gray-100 dark:border-white/5 flex flex-col md:flex-row items-center gap-8 text-center md:text-left">
+                        <div className="w-24 h-24 rounded-[2rem] bg-gradient-to-tr from-primary-600 to-indigo-500 flex items-center justify-center text-white font-black text-4xl shadow-neon-primary flex-shrink-0">
                             {post.author_name ? post.author_name.charAt(0).toUpperCase() : 'A'}
                         </div>
                         <div>
-                            <h4 className="font-heading font-bold text-gray-900 dark:text-white text-lg">Written by {post.author_name || 'Admin'}</h4>
-                            <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">Passionate developer and technical writer sharing knowledge about full-stack web development and design.</p>
+                            <h4 className="text-xl font-heading font-black text-gray-900 dark:text-white uppercase tracking-tight">Written by {post.author_name || 'Admin'}</h4>
+                            <p className="text-gray-500 dark:text-gray-400 text-base mt-2 font-medium">Industry expert specializing in technical storytelling and innovative digital solutions. Dedicated to bringing you the most accurate and insightful updates daily.</p>
                         </div>
                     </div>
 
-                    {/* Interactive Post Actions (Rating) */}
-                    <div className="mt-8 mb-16 flex flex-col items-center p-8 bg-gray-50 dark:bg-dark-card rounded-2xl border border-gray-100 dark:border-dark-border shadow-sm">
-                        <h4 className="text-xl font-heading font-bold text-gray-900 dark:text-white mb-4">Rate this Article</h4>
-                        <div className="flex items-center gap-2">
+                    {/* Rating Interactive */}
+                    <div className="mt-12 bg-white dark:bg-dark-card p-10 rounded-[2.5rem] border border-gray-100 dark:border-white/5 shadow-2xl flex flex-col items-center">
+                        <h4 className="text-lg font-heading font-black text-gray-900 dark:text-white uppercase tracking-widest mb-6">Enjoyed this story?</h4>
+                        <div className="flex items-center gap-3">
                             {[1, 2, 3, 4, 5].map((star) => (
                                 <button
                                     key={star}
                                     onClick={() => handleRate(star)}
                                     onMouseEnter={() => setRatingHover(star)}
                                     onMouseLeave={() => setRatingHover(0)}
-                                    disabled={isSubmittingRating}
-                                    className={`transition-colors p-1 ${isSubmittingRating ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                    className="transition-transform hover:scale-125"
                                 >
                                     <Star
-                                        size={32}
-                                        className={`${(ratingHover || 0) >= star ? 'text-yellow-500 fill-yellow-500' : 'text-gray-300 dark:text-gray-600'} hover:scale-110 transition-transform`}
+                                        size={36}
+                                        className={`${(ratingHover || 0) >= star ? 'text-yellow-400 fill-yellow-400' : 'text-gray-200 dark:text-white/10'} transition-colors`}
                                     />
                                 </button>
                             ))}
                         </div>
-                        <p className="mt-3 text-sm text-gray-500 dark:text-gray-400">Current Rating: <span className="font-bold text-gray-900 dark:text-white">{post.averageRating}</span>/5 ({post.totalRatings} ratings)</p>
+                        <p className="mt-6 text-[10px] font-black text-gray-400 uppercase tracking-widest">Current Rating: {post.averageRating} / 5.0</p>
                     </div>
 
                     {/* Comments Section */}
