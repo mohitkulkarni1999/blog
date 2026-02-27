@@ -67,44 +67,72 @@ const BlogListing = () => {
     return (
         <div className="bg-[#fcfcfd] dark:bg-[#0b0e14] min-h-screen pb-24 transition-colors duration-500 overflow-x-hidden">
 
-            {/* Stunning Hero Section */}
-            <section className="relative pt-32 pb-20 overflow-hidden bg-white dark:bg-[#0b0e14] border-b border-gray-100 dark:border-white/5">
-                <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-primary-500/5 rounded-full blur-[100px] -translate-y-1/2 translate-x-1/2"></div>
-                <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-indigo-500/5 rounded-full blur-[100px] translate-y-1/2 -translate-x-1/2"></div>
+            {/* Dynamic Hero Section */}
+            {page === 1 && !search && !loading && posts.length > 0 ? (
+                <section className="relative w-full h-[60vh] min-h-[500px] flex items-end overflow-hidden group">
+                    <div className="absolute inset-0">
+                        <img
+                            src={posts[0].featured_image || 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?auto=format&fit=crop&q=80'}
+                            className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105"
+                            alt={posts[0].title}
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-[#0b0e14] via-[#0b0e14]/60 to-transparent"></div>
+                    </div>
 
-                <div className="container mx-auto px-4 relative z-10">
-                    <div className="max-w-4xl mx-auto text-center animate-fade-in-up">
-                        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400 text-[10px] font-bold uppercase tracking-widest mb-6 border border-primary-100 dark:border-primary-800">
-                            <Sparkles size={12} /> Live Updates Every Day
+                    <div className="container mx-auto px-4 relative z-10 pb-20 animate-fade-in-up">
+                        <div className="max-w-4xl mx-auto">
+                            <div className="flex items-center gap-3 mb-6">
+                                <span className="bg-primary-600 text-white text-[10px] font-black px-3 py-1 rounded-lg uppercase tracking-widest shadow-neon-primary">
+                                    {posts[0].category_name || 'Latest Story'}
+                                </span>
+                                <div className="h-px w-10 bg-white/20"></div>
+                                <span className="text-white/60 text-[10px] font-black uppercase tracking-widest">{new Date(posts[0].created_at).toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' })}</span>
+                            </div>
+
+                            <Link to={`/blog/${posts[0].slug}`}>
+                                <h1 className="text-4xl md:text-5xl lg:text-6xl font-heading font-black text-white leading-tight mb-6 tracking-tighter hover:text-primary-400 transition-colors line-clamp-3">
+                                    {posts[0].title}
+                                </h1>
+                            </Link>
+
+                            <p className="text-gray-300 text-base md:text-lg mb-8 line-clamp-2 max-w-2xl font-medium">
+                                {posts[0].meta_description || 'Click to read the full technical article from our team...'}
+                            </p>
+
+                            <div className="flex flex-wrap items-center gap-6">
+                                <Link to={`/blog/${posts[0].slug}`} className="bg-primary-600 hover:bg-primary-700 text-white text-xs font-black uppercase tracking-widest px-8 py-4 rounded-xl transition-all shadow-neon-primary hover:gap-4 flex items-center gap-2">
+                                    Read Full Story <ArrowRight size={16} />
+                                </Link>
+                            </div>
                         </div>
-                        <h1 className="text-5xl md:text-7xl font-heading font-black text-gray-900 dark:text-white leading-[1.1] mb-8 tracking-tight">
-                            Explore the world of <br />
-                            <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary-600 via-indigo-500 to-primary-400">knowledge & news.</span>
+                    </div>
+                </section>
+            ) : (
+                <section className="relative pt-32 pb-16 overflow-hidden bg-white dark:bg-[#0b0e14] border-b border-gray-100 dark:border-white/5">
+                    <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-primary-500/5 rounded-full blur-[100px] -translate-y-1/2 translate-x-1/2"></div>
+                    <div className="container mx-auto px-4 relative z-10 text-center animate-fade-in-up">
+                        <h1 className="text-4xl md:text-5xl font-heading font-black text-gray-900 dark:text-white mb-8 tracking-tight">
+                            {search ? `Search results for "${search}"` : category ? 'Explore Category' : 'All Updates'}
                         </h1>
-                        <p className="text-gray-500 dark:text-gray-400 text-lg md:text-xl max-w-2xl mx-auto leading-relaxed mb-10 font-medium">
-                            Premium insights, breaking updates, and technical deep-dives curated for professionals and tech enthusiasts.
-                        </p>
-
-                        {/* Centered Search */}
-                        <form onSubmit={handleSearchSubmit} className="max-w-2xl mx-auto relative group">
-                            <div className="absolute inset-0 bg-primary-500/10 blur-2xl group-hover:bg-primary-500/20 transition-all rounded-[2rem]"></div>
-                            <div className="relative flex items-center bg-white dark:bg-dark-card border border-gray-200 dark:border-dark-border rounded-2xl p-2 shadow-2xl focus-within:ring-2 focus-within:ring-primary-500/50 transition-all">
-                                <Search className="ml-4 text-gray-400" size={20} />
+                        <form onSubmit={handleSearchSubmit} className="max-w-xl mx-auto relative group">
+                            <div className="absolute inset-0 bg-primary-500/10 blur-xl group-hover:bg-primary-500/20 transition-all rounded-[2rem]"></div>
+                            <div className="relative flex items-center bg-white dark:bg-dark-card border border-gray-200 dark:border-dark-border rounded-xl p-2 shadow-xl focus-within:ring-2 focus-within:ring-primary-500/50 transition-all">
+                                <Search className="ml-4 text-gray-400" size={18} />
                                 <input
                                     type="text"
-                                    placeholder="Search stories, topics, or trends..."
-                                    className="flex-grow bg-transparent border-none px-4 py-3 text-gray-800 dark:text-white focus:ring-0 placeholder:text-gray-400 font-medium"
+                                    placeholder="Search stories..."
+                                    className="flex-grow bg-transparent border-none px-4 py-2 text-gray-800 dark:text-white focus:ring-0 placeholder:text-gray-400 font-medium text-sm"
                                     value={search}
                                     onChange={(e) => setSearch(e.target.value)}
                                 />
-                                <button type="submit" className="bg-primary-600 hover:bg-primary-700 text-white font-bold px-8 py-3 rounded-xl transition-all shadow-lg active:scale-95">
-                                    Discover
+                                <button type="submit" className="bg-primary-600 hover:bg-primary-700 text-white font-bold px-6 py-2 rounded-lg transition-all shadow-lg active:scale-95 text-xs uppercase tracking-widest">
+                                    Find
                                 </button>
                             </div>
                         </form>
                     </div>
-                </div>
-            </section>
+                </section>
+            )}
 
             <div className="container mx-auto px-4 mt-16 sm:px-6 lg:px-8">
                 <div className="flex flex-col lg:flex-row gap-12">
@@ -117,38 +145,6 @@ const BlogListing = () => {
                             </div>
                         ) : (
                             <div className="animate-fade-in-up">
-                                {/* Featured Section with Premium Styling */}
-                                {page === 1 && !search && posts.length > 0 && (
-                                    <div className="mb-16 group relative">
-                                        <div className="absolute -inset-1 bg-gradient-to-r from-primary-600 to-indigo-600 rounded-[2.5rem] blur opacity-10 group-hover:opacity-25 transition-opacity duration-700"></div>
-                                        <div className="relative overflow-hidden rounded-[2rem] bg-white dark:bg-dark-card border border-gray-100 dark:border-dark-border shadow-2xl">
-                                            <div className="flex flex-col xl:flex-row">
-                                                <Link to={`/blog/${posts[0].slug}`} className="xl:w-3/5 h-[300px] md:h-[450px] overflow-hidden block">
-                                                    <img
-                                                        src={posts[0].featured_image || 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?auto=format&fit=crop&q=80'}
-                                                        alt={posts[0].title}
-                                                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-1000"
-                                                    />
-                                                </Link>
-                                                <div className="xl:w-2/5 p-8 md:p-12 flex flex-col justify-center">
-                                                    <div className="flex items-center gap-3 mb-6">
-                                                        <span className="bg-primary-600 text-white text-[10px] font-black px-3 py-1 rounded-lg uppercase tracking-widest">Featured</span>
-                                                        <span className="text-gray-400 text-xs font-bold uppercase tracking-wider">{new Date(posts[0].created_at).toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' })}</span>
-                                                    </div>
-                                                    <h2 className="text-2xl md:text-3xl font-heading font-black text-gray-900 dark:text-white mb-5 leading-tight group-hover:text-primary-600 transition-colors">
-                                                        <Link to={`/blog/${posts[0].slug}`}>{posts[0].title}</Link>
-                                                    </h2>
-                                                    <p className="text-gray-500 dark:text-gray-400 text-base leading-relaxed mb-8 line-clamp-3 font-medium">
-                                                        {posts[0].meta_description || 'Step into the latest professional update from our team. We dive deep into market trends and technical innovations...'}
-                                                    </p>
-                                                    <Link to={`/blog/${posts[0].slug}`} className="inline-flex items-center gap-2 text-primary-600 dark:text-primary-400 font-black uppercase text-xs tracking-widest hover:gap-4 transition-all">
-                                                        Read Story <ArrowRight size={16} />
-                                                    </Link>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                )}
 
                                 {/* Heading for List */}
                                 <div className="flex items-center justify-between mb-10">
