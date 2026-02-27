@@ -42,6 +42,21 @@ const SingleBlog = () => {
         window.scrollTo(0, 0);
     }, [slug, token]);
 
+    const handleCommentSubmit = async (e) => {
+        e.preventDefault();
+        const nameInput = document.getElementById('guestName');
+        const name = nameInput ? nameInput.value : '';
+        if (!newComment.trim()) return;
+        try {
+            await api.post('/comments', { post_id: post.id, comment: newComment, guest_name: name });
+            setNewComment('');
+            if (nameInput) nameInput.value = '';
+            alert('Comment submitted for approval!');
+        } catch (err) {
+            alert('Failed to submit comment');
+        }
+    };
+
     const handleRate = async (ratingVal) => {
         if (!token) {
             alert('Please login to rate this article.');
@@ -200,19 +215,7 @@ const SingleBlog = () => {
                                 placeholder="Share your thoughts..."
                                 required
                             />
-                            <button type="submit" className="btn-primary" onClick={(e) => {
-                                e.preventDefault();
-                                const name = document.getElementById('guestName').value;
-                                if (!newComment.trim()) return;
-                                api.post('/comments', { post_id: post.id, comment: newComment, guest_name: name })
-                                    .then(() => {
-                                        setNewComment('');
-                                        document.getElementById('guestName').value = '';
-                                        alert('Comment submitted for approval!');
-                                    }).catch(err => {
-                                        alert('Failed to submit comment');
-                                    });
-                            }}>Post Comment</button>
+                            <button type="submit" className="btn-primary">Post Comment</button>
                         </form>
 
                         {/* Comment List */}
