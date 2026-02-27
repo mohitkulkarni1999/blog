@@ -14,18 +14,22 @@ const app = express();
 app.use(helmet({ crossOriginResourcePolicy: false })); // Allow cross-origin image requests
 app.use(cors({
     origin: function (origin, callback) {
-        // Allow requests with no origin (like mobile apps or curl)
+        // Allow requests with no origin (like mobile apps)
         if (!origin) return callback(null, true);
 
-        const allowedOrigins = ['http://localhost:5173', 'http://localhost:5174', process.env.CLIENT_URL];
+        const isLocalhost = origin.includes('localhost');
+        const isVercel = origin.includes('vercel.app');
+        const isCustom = process.env.CLIENT_URL && origin === process.env.CLIENT_URL;
 
-        if (allowedOrigins.indexOf(origin) !== -1 || !process.env.CLIENT_URL) {
+        if (isLocalhost || isVercel || isCustom || !process.env.CLIENT_URL) {
             callback(null, true);
         } else {
             callback(new Error('Not allowed by CORS'));
         }
     },
-    credentials: true
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
 const limiter = rateLimit({
