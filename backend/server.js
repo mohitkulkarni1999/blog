@@ -10,8 +10,8 @@ dotenv.config();
 
 const app = express();
 
-// Trust proxy for Render/Cloud platforms (Must be true for express-rate-limit)
-app.set('trust proxy', true);
+// Trust proxy for Render/Cloud platforms
+app.set('trust proxy', 1);
 
 // Security Middleware
 app.use(helmet({ crossOriginResourcePolicy: false })); // Allow cross-origin image requests
