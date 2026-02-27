@@ -41,26 +41,41 @@ const getPosts = async (req, res, next) => {
 // @desc    Get all posts for admin (includes drafts)
 // @route   GET /api/posts/admin
 // @access  Private/Admin
-const getAdminPosts = async (req, res) => {
+const getAdminPosts = async (req, res, next) => {
     try {
         const page = parseInt(req.query.page) || 1;
         const limit = parseInt(req.query.limit) || 10;
         const offset = (page - 1) * limit;
 
-        const query = 'SELECT p.*, c.name as category_name, u.name as author_name FROM posts p LEFT JOIN categories c ON p.category_id = c.id LEFT JOIN users u ON p.author_id = u.id ORDER BY p.created_at DESC LIMIT ? OFFSET ?';
+        const query = `
+            SELECT 
+                p.*, 
+                c.name as category_name, 
+                u.name as author_name,
+                COALESCE((SELECT AVG(rating) FROM ratings WHERE post_id = p.id), 0) as avg_rating,
+                COALESCE((SELECT COUNT(*) FROM ratings WHERE post_id = p.id), 0) as rating_count
+            FROM posts p 
+            LEFT JOIN categories c ON p.category_id = c.id 
+            LEFT JOIN users u ON p.author_id = u.id 
+            ORDER BY p.created_at DESC 
+            LIMIT ? OFFSET ?
+        `;
         const countQuery = 'SELECT COUNT(*) as total FROM posts';
 
         const [posts] = await pool.query(query, [limit, offset]);
         const [totalRows] = await pool.query(countQuery);
 
         res.json({
-            posts,
+            posts: posts.map(p => ({
+                ...p,
+                avg_rating: parseFloat(p.avg_rating).toFixed(1)
+            })),
             total: totalRows[0].total,
             page,
             pages: Math.ceil(totalRows[0].total / limit)
         });
     } catch (error) {
-        res.status(500).json({ message: 'Server Error', error: error.message });
+        next(error);
     }
 };
 

@@ -49,6 +49,18 @@ const BlogListing = () => {
         fetchPosts();
     }, [page, search]);
 
+    // Track site visit once on mount
+    useEffect(() => {
+        const trackSiteVisit = async () => {
+            try {
+                await api.post('/stats/visit');
+            } catch (err) {
+                // Ignore silent tracking errors
+            }
+        };
+        trackSiteVisit();
+    }, []);
+
     const handleSearch = (e) => {
         e.preventDefault();
         setPage(1);
