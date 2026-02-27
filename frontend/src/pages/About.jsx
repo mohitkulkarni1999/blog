@@ -72,24 +72,24 @@ const About = () => {
                 </div>
 
                 {/* Stats Bar */}
-                <div className="bg-primary-600 rounded-[2rem] p-12 shadow-neon-primary relative overflow-hidden">
+                <div className="bg-primary-600 rounded-[2rem] p-6 md:p-12 shadow-neon-primary relative overflow-hidden">
                     <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl"></div>
-                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-8 text-white relative z-10">
+                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-8 text-white relative z-10">
                         <div className="text-center">
-                            <p className="text-4xl font-bold mb-1">5M+</p>
-                            <p className="text-primary-100 text-sm uppercase tracking-widest font-bold">Monthly Readers</p>
+                            <p className="text-2xl md:text-4xl font-bold mb-1">5M+</p>
+                            <p className="text-primary-100 text-[10px] md:text-sm uppercase tracking-widest font-bold">Monthly Readers</p>
                         </div>
                         <div className="text-center">
-                            <p className="text-4xl font-bold mb-1">10k+</p>
-                            <p className="text-primary-100 text-sm uppercase tracking-widest font-bold">In-depth Articles</p>
+                            <p className="text-2xl md:text-4xl font-bold mb-1">10k+</p>
+                            <p className="text-primary-100 text-[10px] md:text-sm uppercase tracking-widest font-bold">In-depth Articles</p>
                         </div>
                         <div className="text-center">
-                            <p className="text-4xl font-bold mb-1">50+</p>
-                            <p className="text-primary-100 text-sm uppercase tracking-widest font-bold">Global Authors</p>
+                            <p className="text-2xl md:text-4xl font-bold mb-1">50+</p>
+                            <p className="text-primary-100 text-[10px] md:text-sm uppercase tracking-widest font-bold">Global Authors</p>
                         </div>
                         <div className="text-center">
-                            <p className="text-4xl font-bold mb-1">24/7</p>
-                            <p className="text-primary-100 text-sm uppercase tracking-widest font-bold">Live Updates</p>
+                            <p className="text-2xl md:text-4xl font-bold mb-1">24/7</p>
+                            <p className="text-primary-100 text-[10px] md:text-sm uppercase tracking-widest font-bold">Live Updates</p>
                         </div>
                     </div>
                 </div>

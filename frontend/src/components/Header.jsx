@@ -59,7 +59,7 @@ const Header = () => {
                         <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-primary-600 to-primary-400 flex items-center justify-center text-white font-heading font-bold text-xl shadow-neon group-hover:scale-105 transition-transform duration-300">
                             D
                         </div>
-                        <span className="font-heading font-bold text-2xl tracking-tight text-gray-900 dark:text-white hidden sm:inline">
+                        <span className="font-heading font-bold text-lg xs:text-xl sm:text-2xl tracking-tight text-gray-900 dark:text-white">
                             DailyUpdatesHub<span className="text-primary-600 dark:text-primary-400">.</span>
                         </span>
                     </Link>

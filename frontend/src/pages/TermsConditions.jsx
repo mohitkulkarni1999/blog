@@ -2,7 +2,7 @@ const TermsConditions = () => {
     return (
         <div className="bg-gray-50 dark:bg-dark-bg min-h-screen pt-12 pb-24 transition-colors duration-300">
             <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-4xl">
-                <div className="bg-white dark:bg-dark-card p-10 md:p-16 rounded-[2rem] shadow-soft border border-gray-100 dark:border-dark-border">
+                <div className="bg-white dark:bg-dark-card p-6 md:p-16 rounded-[2rem] shadow-soft border border-gray-100 dark:border-dark-border">
                     <h1 className="text-3xl md:text-4xl font-heading font-bold text-gray-900 dark:text-white mb-8 border-b border-gray-100 dark:border-dark-border pb-6">
                         Terms & Conditions
                     </h1>

@@ -26,7 +26,7 @@ const Register = () => {
 
     return (
         <div className="min-h-[80vh] flex items-center justify-center bg-gray-50 dark:bg-dark-bg font-sans transition-colors duration-300">
-            <div className="max-w-md w-full space-y-8 bg-white dark:bg-dark-card p-10 rounded-2xl shadow-soft border border-gray-100 dark:border-dark-border m-4">
+            <div className="max-w-md w-full space-y-8 bg-white dark:bg-dark-card p-6 md:p-10 rounded-2xl shadow-soft border border-gray-100 dark:border-dark-border m-4">
 
                 <div className="text-center">
                     <div className="mx-auto w-16 h-16 rounded-full bg-gradient-to-tr from-primary-600 to-primary-400 flex items-center justify-center text-white shadow-neon mb-6">
