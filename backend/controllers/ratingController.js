@@ -3,9 +3,9 @@ const pool = require('../config/db');
 // @desc    Rate a post
 // @route   POST /api/posts/:postId/rate
 // @access  Public
-const ratePost = async (req, res) => {
+const ratePost = async (req, res, next) => {
     const { rating } = req.body;
-    const postId = req.params.postId;
+    const postId = req.params.id; // Corrected from postId to id to match route
 
     // Use user id if logged in, else use IP for tracking
     const userId = req.user ? req.user.id : null;
@@ -50,7 +50,7 @@ const ratePost = async (req, res) => {
         });
 
     } catch (error) {
-        res.status(500).json({ message: 'Server Error', error: error.message });
+        next(error);
     }
 };
 
