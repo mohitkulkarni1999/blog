@@ -62,6 +62,9 @@ app.use('/api/contact', require('./routes/contactRoutes'));
 app.use('/api/stats', require('./routes/statRoutes'));
 app.use('/api/upload', require('./routes/uploadRoutes'));
 
+const { getSitemap } = require('./controllers/sitemapController');
+app.get('/sitemap.xml', getSitemap);
+
 // Error Handling Middleware
 app.use((err, req, res, next) => {
     console.error('SERVER ERROR:', err.stack);

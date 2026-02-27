@@ -49,7 +49,7 @@ const Contact = () => {
                                     </div>
                                     <div>
                                         <h4 className="font-semibold text-gray-900 dark:text-white text-lg">Email Us</h4>
-                                        <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">contact@problog.com</p>
+                                        <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">contact@dailyupdateshub.in</p>
                                     </div>
                                 </li>
                                 <li className="flex items-start gap-4">
@@ -58,7 +58,7 @@ const Contact = () => {
                                     </div>
                                     <div>
                                         <h4 className="font-semibold text-gray-900 dark:text-white text-lg">Call Us</h4>
-                                        <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">+1 (555) 123-4567</p>
+                                        <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">+91 98765 43210</p>
                                     </div>
                                 </li>
                                 <li className="flex items-start gap-4">
@@ -67,7 +67,7 @@ const Contact = () => {
                                     </div>
                                     <div>
                                         <h4 className="font-semibold text-gray-900 dark:text-white text-lg">Location</h4>
-                                        <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">123 Blog Street, Tech City, TC 90210</p>
+                                        <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">Tech Hub, Silicon Valley, Bangalore, India</p>
                                     </div>
                                 </li>
                             </ul>

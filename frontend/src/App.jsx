@@ -6,6 +6,10 @@ import AdminLayout from './layouts/AdminLayout';
 import BlogListing from './pages/BlogListing';
 import SingleBlog from './pages/SingleBlog';
 import Contact from './pages/Contact';
+import About from './pages/About';
+import PrivacyPolicy from './pages/PrivacyPolicy';
+import TermsConditions from './pages/TermsConditions';
+import Disclaimer from './pages/Disclaimer';
 import NotFound from './pages/NotFound';
 
 // Auth Pages
@@ -35,8 +39,13 @@ function App() {
       {/* Public Routes with MainLayout */}
       <Route element={<MainLayout />}>
         <Route path="/" element={<BlogListing />} />
+        <Route path="/blog" element={<BlogListing />} />
         <Route path="/blog/:slug" element={<SingleBlog />} />
         <Route path="/contact" element={<Contact />} />
+        <Route path="/about" element={<About />} />
+        <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+        <Route path="/terms-conditions" element={<TermsConditions />} />
+        <Route path="/disclaimer" element={<Disclaimer />} />
         <Route path="*" element={<NotFound />} />
       </Route>
 
