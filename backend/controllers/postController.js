@@ -4,7 +4,7 @@ const slugify = require('slugify');
 // @desc    Get all posts
 // @route   GET /api/posts
 // @access  Public
-const getPosts = async (req, res) => {
+const getPosts = async (req, res, next) => {
     try {
         const page = parseInt(req.query.page) || 1;
         const limit = parseInt(req.query.limit) || 10;
@@ -34,7 +34,7 @@ const getPosts = async (req, res) => {
             pages: Math.ceil(totalRows[0].total / limit)
         });
     } catch (error) {
-        res.status(500).json({ message: 'Server Error', error: error.message });
+        next(error);
     }
 };
 

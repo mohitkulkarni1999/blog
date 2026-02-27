@@ -1,11 +1,11 @@
-const bcrypt = require('bcrypt');
+const bcrypt = require('bcryptjs');
 const pool = require('../config/db');
 const generateToken = require('../utils/generateToken');
 
 // @desc    Register a new user
 // @route   POST /api/auth/register
 // @access  Public
-const registerUser = async (req, res) => {
+const registerUser = async (req, res, next) => {
     const { name, email, password } = req.body;
 
     try {
@@ -26,18 +26,18 @@ const registerUser = async (req, res) => {
             id: result.insertId,
             name,
             email,
-            role: 'user',
+            role: 'admin',
             token: generateToken(result.insertId),
         });
     } catch (error) {
-        res.status(500).json({ message: 'Server Error' });
+        next(error);
     }
 };
 
 // @desc    Auth user & get token
 // @route   POST /api/auth/login
 // @access  Public
-const loginUser = async (req, res) => {
+const loginUser = async (req, res, next) => {
     const { email, password } = req.body;
 
     try {
@@ -55,7 +55,7 @@ const loginUser = async (req, res) => {
             res.status(401).json({ message: 'Invalid email or password' });
         }
     } catch (error) {
-        res.status(500).json({ message: 'Server Error' });
+        next(error);
     }
 };
 
