@@ -14,7 +14,7 @@ const getAdminStats = async (req, res) => {
             totalComments: comments[0].count || 0
         });
     } catch (error) {
-        res.status(500).json({ message: 'Server Error', error: error.message });
+        next(error);
     }
 };
 
