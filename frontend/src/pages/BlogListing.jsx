@@ -151,9 +151,12 @@ const BlogListing = () => {
                                 {categories && categories.length > 0 && (
                                     <div className="mb-8 md:mb-10 w-full overflow-hidden">
                                         <div className="flex items-center w-full overflow-x-auto pb-4 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none']">
-                                            <div className="flex items-center gap-2 pr-6 sticky left-0 z-10 bg-gradient-to-r from-white dark:from-dark-bg via-white dark:via-dark-bg to-transparent">
-                                                <Tag size={16} className="text-primary-600 shrink-0" />
-                                                <span className="text-xs font-black text-gray-900 dark:text-white uppercase tracking-widest shrink-0">Explore:</span>
+                                            <div className="flex items-stretch sticky left-0 z-10">
+                                                <div className="flex items-center gap-2 pr-4 bg-[#fcfcfd] dark:bg-[#0b0e14]">
+                                                    <Tag size={16} className="text-primary-600 shrink-0" />
+                                                    <span className="text-xs font-black text-gray-900 dark:text-white uppercase tracking-widest shrink-0">Explore:</span>
+                                                </div>
+                                                <div className="w-12 bg-gradient-to-r from-[#fcfcfd] dark:from-[#0b0e14] to-transparent pointer-events-none"></div>
                                             </div>
                                             <div className="flex items-center gap-2 flex-nowrap pr-4">
                                                 {categories.map((cat) => (
