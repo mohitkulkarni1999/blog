@@ -147,6 +147,29 @@ const BlogListing = () => {
                         ) : (
                             <div className="animate-fade-in-up">
 
+                                {/* Horizontal Explore Categories */}
+                                {categories && categories.length > 0 && (
+                                    <div className="mb-8 md:mb-10 w-full overflow-hidden">
+                                        <div className="flex items-center w-full overflow-x-auto pb-4 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none']">
+                                            <div className="flex items-center gap-2 pr-6 sticky left-0 z-10 bg-gradient-to-r from-white dark:from-dark-bg via-white dark:via-dark-bg to-transparent">
+                                                <Tag size={16} className="text-primary-600 shrink-0" />
+                                                <span className="text-xs font-black text-gray-900 dark:text-white uppercase tracking-widest shrink-0">Explore:</span>
+                                            </div>
+                                            <div className="flex items-center gap-2 flex-nowrap pr-4">
+                                                {categories.map((cat) => (
+                                                    <Link
+                                                        key={cat.id}
+                                                        to={`/?category=${cat.id}`}
+                                                        className="px-4 py-2 bg-white dark:bg-dark-card border border-gray-100 dark:border-white/5 text-gray-600 dark:text-gray-300 text-[10px] font-black rounded-lg hover:bg-primary-600 hover:text-white dark:hover:bg-primary-600 hover:border-primary-600 transition-all uppercase tracking-widest shrink-0 whitespace-nowrap shadow-sm"
+                                                    >
+                                                        {cat.name}
+                                                    </Link>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
                                 {/* Heading for List */}
                                 <div className="flex items-center justify-between mb-6 md:mb-10">
                                     <h3 className="text-xl font-heading font-black text-gray-900 dark:text-white uppercase tracking-widest flex items-center gap-3">
@@ -264,10 +287,6 @@ const BlogListing = () => {
                     {/* Sidebar with Premium Cards */}
                     <aside className="lg:w-1/3 xl:w-[28%] space-y-6 md:space-y-10 animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
 
-                        {/* New Widgets inserted here */}
-                        <WeatherWidget />
-                        <MarketWidget />
-
                         {/* Trending Sidebar */}
                         <div className="bg-white dark:bg-dark-card p-6 md:p-8 rounded-3xl md:rounded-[2rem] shadow-soft border border-gray-100 dark:border-dark-border overflow-hidden relative">
                             <h4 className="text-lg font-heading font-black text-gray-900 dark:text-white mb-6 md:mb-8 flex items-center gap-3 uppercase tracking-tighter">
@@ -303,23 +322,9 @@ const BlogListing = () => {
                             </div>
                         </div>
 
-                        {/* Topics Card */}
-                        <div className="bg-white dark:bg-dark-card p-6 md:p-8 rounded-3xl md:rounded-[2rem] shadow-soft border border-gray-100 dark:border-dark-border">
-                            <h4 className="text-lg font-heading font-black text-gray-900 dark:text-white mb-4 md:mb-6 uppercase flex items-center gap-3">
-                                <Tag size={20} className="text-primary-600" /> Explore
-                            </h4>
-                            <div className="flex flex-wrap gap-2">
-                                {categories.map((cat) => (
-                                    <Link
-                                        key={cat.id}
-                                        to={`/?category=${cat.id}`}
-                                        className="px-4 py-2 bg-gray-50 dark:bg-[#161b22] dark:border dark:border-white/5 text-gray-600 dark:text-gray-300 text-[11px] font-black rounded-xl hover:bg-primary-600 hover:text-white dark:hover:bg-primary-600 transition-all uppercase tracking-widest"
-                                    >
-                                        {cat.name}
-                                    </Link>
-                                ))}
-                            </div>
-                        </div>
+                        {/* New Widgets inserted here */}
+                        <WeatherWidget />
+                        <MarketWidget />
 
                         {/* Visual Ad / CTA */}
                         <div className="relative group overflow-hidden rounded-[2.5rem] bg-gray-900 shadow-2xl aspect-[4/5] flex items-end p-10">
