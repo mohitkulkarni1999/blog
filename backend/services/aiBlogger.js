@@ -4,7 +4,7 @@ const slugify = require('slugify');
 const pool = require('../config/db');
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash-latest' });
 
 // ─── Fetch top news headlines ─────────────────────────────────────────────────
 async function fetchTopNews(count = 2) {
