@@ -31,8 +31,8 @@ router.post('/generate', protect, admin, async (req, res) => {
 
 // @desc    Get AI blogger status / config info
 // @route   GET /api/ai/status
-// @access  Private/Admin
-router.get('/status', protect, admin, (req, res) => {
+// @access  Public (safe — no sensitive data exposed)
+router.get('/status', (req, res) => {
     res.json({
         enabled: !!(process.env.GEMINI_API_KEY && process.env.NEWS_API_KEY),
         postsPerDay: parseInt(process.env.AI_BLOGGER_POSTS || '2', 10),
