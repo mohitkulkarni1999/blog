@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Clock, Search, ChevronRight, ChevronLeft, TrendingUp, Tag, ArrowRight, Sparkles } from 'lucide-react';
 import api from '../services/api';
-import { WeatherWidget, MarketWidget } from '../components/BlogWidgets';
+import { WeatherWidget } from '../components/BlogWidgets';
 
 const BlogListing = () => {
     const [posts, setPosts] = useState([]);
@@ -327,7 +327,6 @@ const BlogListing = () => {
 
                         {/* New Widgets inserted here */}
                         <WeatherWidget />
-                        <MarketWidget />
 
                         {/* Visual Ad / CTA */}
                         <div className="relative group overflow-hidden rounded-[2.5rem] bg-gray-900 shadow-2xl aspect-[4/5] flex items-end p-10">
