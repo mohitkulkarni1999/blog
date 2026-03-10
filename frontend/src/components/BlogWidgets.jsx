@@ -6,25 +6,54 @@ import { Link } from 'react-router-dom';
 export const WeatherWidget = () => {
     const [weather, setWeather] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [locationName, setLocationName] = useState('New Delhi, IN');
 
     useEffect(() => {
-        // Using Open-Meteo for free weather API (no key required)
-        const fetchWeather = async () => {
+        // Fetch weather and reverse geocode
+        const fetchWeatherByCoords = async (lat, lon) => {
             try {
-                // Defaulting to New Delhi coordinates
-                const res = await fetch('https://api.open-meteo.com/v1/forecast?latitude=28.6139&longitude=77.209&current_weather=true');
-                const data = await res.json();
-                setWeather(data.current_weather);
+                // 1. Fetch live weather using open-meteo
+                const weatherRes = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true`);
+                const weatherData = await weatherRes.json();
+                setWeather(weatherData.current_weather);
+
+                // 2. Fetch City/Country name using BigDataCloud's free reverse geocoding API
+                const geoRes = await fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lon}&localityLanguage=en`);
+                const geoData = await geoRes.json();
+
+                // Fallback through available locality fields
+                const city = geoData.city || geoData.locality || geoData.principalSubdivision;
+                if (city && geoData.countryCode) {
+                    setLocationName(`${city}, ${geoData.countryCode}`);
+                }
             } catch (err) {
-                console.error("Failed to fetch weather");
+                console.error("Failed to fetch live weather", err);
             } finally {
                 setLoading(false);
             }
         };
-        fetchWeather();
+
+        const checkLocation = () => {
+            if ("geolocation" in navigator) {
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        fetchWeatherByCoords(position.coords.latitude, position.coords.longitude);
+                    },
+                    (error) => {
+                        console.warn("Geolocation blocked or failed. Using default location.", error);
+                        fetchWeatherByCoords(28.6139, 77.209); // New Delhi
+                    },
+                    { timeout: 7000 } // Fallback to New Delhi if it takes longer than 7s
+                );
+            } else {
+                fetchWeatherByCoords(28.6139, 77.209);
+            }
+        };
+
+        checkLocation();
     }, []);
 
-    if (loading) return <div className="h-32 bg-gray-100 dark:bg-dark-card animate-pulse rounded-3xl"></div>;
+    if (loading) return <div className="h-32 bg-gray-100 dark:bg-dark-card animate-pulse rounded-[2rem] border border-gray-100 dark:border-dark-border"></div>;
     if (!weather) return null;
 
     const getWeatherIcon = (code) => {
@@ -38,7 +67,7 @@ export const WeatherWidget = () => {
             <div className="absolute -right-6 -top-6 w-32 h-32 bg-white/10 rounded-full blur-2xl group-hover:bg-white/20 transition-all duration-700"></div>
             <div className="flex justify-between items-center relative z-10">
                 <div>
-                    <h3 className="text-sm font-black uppercase tracking-widest text-white/80 mb-1">New Delhi, IN</h3>
+                    <h3 className="text-sm font-black uppercase tracking-widest text-white/80 mb-1">{locationName}</h3>
                     <div className="text-4xl font-heading font-black flex items-start gap-1">
                         {Math.round(weather.temperature)}<span className="text-xl mt-1">°C</span>
                     </div>
@@ -54,7 +83,6 @@ export const WeatherWidget = () => {
         </div>
     );
 };
-
 
 // 2. Market Widget (Crypto & Stocks)
 export const MarketWidget = () => {
