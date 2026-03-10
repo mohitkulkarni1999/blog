@@ -80,6 +80,56 @@ const SingleBlog = () => {
 
     const cleanContent = post?.content ? DOMPurify.sanitize(post.content) : '';
 
+    // ── Inject JSON-LD structured data for SEO ───────────────────────────────
+    useEffect(() => {
+        if (!post) return;
+        const schema = {
+            '@context': 'https://schema.org',
+            '@type': 'NewsArticle',
+            'headline': post.title,
+            'description': post.meta_description || post.title,
+            'image': post.featured_image ? [post.featured_image] : [],
+            'datePublished': post.created_at,
+            'dateModified': post.updated_at || post.created_at,
+            'author': {
+                '@type': 'Person',
+                'name': post.author_name || 'DailyUpdatesHub Editorial Team',
+                'url': 'https://dailyupdateshub.in/about'
+            },
+            'publisher': {
+                '@type': 'Organization',
+                'name': 'DailyUpdatesHub',
+                'logo': {
+                    '@type': 'ImageObject',
+                    'url': 'https://dailyupdateshub.in/favicon.png'
+                },
+                'url': 'https://dailyupdateshub.in'
+            },
+            'mainEntityOfPage': {
+                '@type': 'WebPage',
+                '@id': `https://dailyupdateshub.in/blog/${post.slug}`
+            },
+            'articleSection': post.category_name || 'News',
+            'inLanguage': 'en-IN'
+        };
+        const script = document.createElement('script');
+        script.type = 'application/ld+json';
+        script.id = 'article-schema';
+        script.text = JSON.stringify(schema);
+        // Remove old schema if exists
+        const old = document.getElementById('article-schema');
+        if (old) old.remove();
+        document.head.appendChild(script);
+        // Also update page title & meta description dynamically
+        document.title = `${post.meta_title || post.title} | DailyUpdatesHub`;
+        const metaDesc = document.querySelector('meta[name="description"]');
+        if (metaDesc && post.meta_description) metaDesc.setAttribute('content', post.meta_description);
+        return () => {
+            const s = document.getElementById('article-schema');
+            if (s) s.remove();
+        };
+    }, [post]);
+
     if (loading) {
         return (
             <div className="flex justify-center items-center min-h-screen bg-[#fcfcfd] dark:bg-[#0b0e14]">
