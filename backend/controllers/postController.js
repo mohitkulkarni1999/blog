@@ -1,5 +1,6 @@
 const pool = require('../config/db');
 const slugify = require('slugify');
+const { cacheGet, cacheSet, cacheDel } = require('../services/cache');
 
 // @desc    Get all posts
 // @route   GET /api/posts
@@ -12,8 +13,19 @@ const getPosts = async (req, res, next) => {
         const search = req.query.search ? `%${req.query.search}%` : null;
         const categoryId = req.query.category || null;
 
+        // Only cache non-search, page-1 requests (main listing)
+        const cacheKey = !search && !categoryId
+            ? `posts:page:${page}:limit:${limit}`
+            : null;
+
+        if (cacheKey) {
+            const cached = await cacheGet(cacheKey);
+            if (cached) return res.json(cached);
+        }
+
         let query = `
-            SELECT p.*, c.name as category_name, u.name as author_name 
+            SELECT p.id, p.title, p.slug, p.featured_image, p.status, p.view_count, p.created_at,
+                   c.name as category_name, u.name as author_name 
             FROM posts p 
             LEFT JOIN categories c ON p.category_id = c.id 
             LEFT JOIN users u ON p.author_id = u.id 
@@ -49,12 +61,15 @@ const getPosts = async (req, res, next) => {
         const [posts] = await pool.query(query, queryParams);
         const [totalRows] = await pool.query(countQuery, countParams);
 
-        res.json({
+        const result = {
             posts,
             total: totalRows[0].total,
             page,
             pages: Math.ceil(totalRows[0].total / limit)
-        });
+        };
+
+        if (cacheKey) await cacheSet(cacheKey, result, 120); // 2 min TTL
+        res.json(result);
     } catch (error) {
         next(error);
     }
@@ -106,6 +121,14 @@ const getAdminPosts = async (req, res, next) => {
 // @access  Public
 const getPostBySlug = async (req, res) => {
     try {
+        const cacheKey = `post:slug:${req.params.slug}`;
+        const cached = await cacheGet(cacheKey);
+        if (cached) {
+            // Still increment view count in background (non-blocking)
+            pool.query('UPDATE posts SET view_count = view_count + 1 WHERE id = ?', [cached.id]).catch(() => { });
+            return res.json({ ...cached, view_count: cached.view_count + 1 });
+        }
+
         const [posts] = await pool.query(
             'SELECT p.*, c.name as category_name, u.name as author_name FROM posts p LEFT JOIN categories c ON p.category_id = c.id LEFT JOIN users u ON p.author_id = u.id WHERE p.slug = ?',
             [req.params.slug]
@@ -118,18 +141,16 @@ const getPostBySlug = async (req, res) => {
             await pool.query('UPDATE posts SET view_count = view_count + 1 WHERE id = ?', [post.id]);
             post.view_count += 1;
 
-            // Fetch average rating
-            const [ratingRes] = await pool.query(
-                'SELECT AVG(rating) as averageRating, COUNT(*) as totalRatings FROM ratings WHERE post_id = ?',
-                [post.id]
-            );
-            post.averageRating = parseFloat(ratingRes[0].averageRating || 0).toFixed(1);
-            post.totalRatings = ratingRes[0].totalRatings || 0;
+            // Fetch rating + images in parallel
+            const [ratingRes, imagesRes] = await Promise.all([
+                pool.query('SELECT AVG(rating) as averageRating, COUNT(*) as totalRatings FROM ratings WHERE post_id = ?', [post.id]),
+                pool.query('SELECT image_url FROM post_images WHERE post_id = ?', [post.id])
+            ]);
+            post.averageRating = parseFloat(ratingRes[0][0].averageRating || 0).toFixed(1);
+            post.totalRatings = ratingRes[0][0].totalRatings || 0;
+            post.additional_images = imagesRes[0].map(img => img.image_url);
 
-            // Fetch additional images
-            const [imagesRes] = await pool.query('SELECT image_url FROM post_images WHERE post_id = ?', [post.id]);
-            post.additional_images = imagesRes.map(img => img.image_url);
-
+            await cacheSet(cacheKey, post, 300); // 5 min TTL
             res.json(post);
         } else {
             res.status(404).json({ message: 'Post not found' });
@@ -172,6 +193,8 @@ const createPost = async (req, res) => {
             }
         }
 
+        // Invalidate posts listing cache
+        await cacheDel('posts:page:*');
         res.status(201).json({ id: postId, title, slug, status });
     } catch (error) {
         res.status(500).json({ message: 'Server Error', error: error.message });
@@ -225,6 +248,11 @@ const updatePost = async (req, res) => {
             }
         }
 
+        // Invalidate caches for this post and the listing
+        await Promise.all([
+            cacheDel(`post:slug:*`),
+            cacheDel('posts:page:*')
+        ]);
         res.json({ message: 'Post updated' });
     } catch (error) {
         res.status(500).json({ message: 'Server Error', error: error.message });
@@ -240,6 +268,7 @@ const deletePost = async (req, res) => {
         if (result.affectedRows === 0) {
             return res.status(404).json({ message: 'Post not found' });
         }
+        await Promise.all([cacheDel('post:slug:*'), cacheDel('posts:page:*')]);
         res.json({ message: 'Post removed' });
     } catch (error) {
         res.status(500).json({ message: 'Server Error' });

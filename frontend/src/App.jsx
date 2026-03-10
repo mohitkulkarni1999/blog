@@ -1,4 +1,4 @@
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useEffect } from 'react-router-dom';
 import MainLayout from './layouts/MainLayout';
 import AdminLayout from './layouts/AdminLayout';
 
@@ -34,6 +34,12 @@ const ProtectedRoute = ({ children }) => {
 };
 
 function App() {
+  // Warm up the backend silently on first load (prevents cold-start delay)
+  useEffect(() => {
+    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+    fetch(`${apiUrl}/categories`, { method: 'GET', cache: 'no-store' }).catch(() => { });
+  }, []);
+
   return (
     <Routes>
       {/* Public Routes with MainLayout */}

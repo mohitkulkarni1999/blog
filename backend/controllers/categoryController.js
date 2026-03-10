@@ -1,12 +1,17 @@
 const pool = require('../config/db');
 const slugify = require('slugify');
+const { cacheGet, cacheSet, cacheDel } = require('../services/cache');
 
 // @desc    Get all categories
 // @route   GET /api/categories
 // @access  Public
 const getCategories = async (req, res) => {
     try {
+        const cached = await cacheGet('categories:all');
+        if (cached) return res.json(cached);
+
         const [categories] = await pool.query('SELECT * FROM categories ORDER BY name ASC');
+        await cacheSet('categories:all', categories, 1800); // 30 min TTL
         res.json(categories);
     } catch (error) {
         res.status(500).json({ message: 'Server Error' });
@@ -33,6 +38,7 @@ const createCategory = async (req, res) => {
             [name, slug]
         );
 
+        await cacheDel('categories:all');
         res.status(201).json({ id: result.insertId, name, slug });
     } catch (error) {
         res.status(500).json({ message: 'Server Error' });
@@ -48,6 +54,7 @@ const deleteCategory = async (req, res) => {
         if (result.affectedRows === 0) {
             return res.status(404).json({ message: 'Category not found' });
         }
+        await cacheDel('categories:all');
         res.json({ message: 'Category removed' });
     } catch (error) {
         res.status(500).json({ message: 'Server Error' });
