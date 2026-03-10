@@ -243,52 +243,129 @@ const SingleBlog = () => {
                     </div>
 
                     {/* Comments Section */}
-                    <section className="mt-16">
-                        <h3 className="text-2xl font-heading font-bold text-gray-900 dark:text-white mb-8">Comments ({comments.length})</h3>
+                    <section className="mt-16 md:mt-24">
 
-                        {/* Comment Form */}
-                        <form onSubmit={handleCommentSubmit} className="mb-12 bg-gray-50 dark:bg-dark-card p-6 rounded-2xl border border-gray-100 dark:border-dark-border shadow-soft">
-                            <h4 className="font-medium text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2"><Send size={18} className="text-primary-500" /> Leave a Reply</h4>
-                            <div className="mb-4">
-                                <input
-                                    type="text"
-                                    placeholder="Your Name"
-                                    className="input-field mb-4 max-w-sm"
-                                    id="guestName"
-                                />
+                        {/* Section Header */}
+                        <div className="flex items-center justify-between mb-10">
+                            <div className="flex items-center gap-4">
+                                <h3 className="text-2xl md:text-3xl font-heading font-black text-gray-900 dark:text-white tracking-tight">
+                                    Discussion
+                                </h3>
+                                <span className="px-3 py-1 bg-primary-600 text-white text-xs font-black rounded-full shadow-neon-primary">
+                                    {comments.length}
+                                </span>
                             </div>
-                            <textarea
-                                value={newComment}
-                                id="commentText"
-                                onChange={(e) => setNewComment(e.target.value)}
-                                className="input-field min-h-[120px] resize-y mb-4"
-                                placeholder="Share your thoughts..."
-                                required
-                            />
-                            <button type="submit" className="btn-primary">Post Comment</button>
-                        </form>
-
-                        {/* Comment List */}
-                        <div className="space-y-8">
-                            {comments.length === 0 ? (
-                                <p className="text-gray-500 dark:text-gray-400 text-center py-8 italic bg-gray-50 dark:bg-dark-card rounded-xl">Be the first to comment!</p>
-                            ) : (
-                                comments.map((comment) => (
-                                    <div key={comment.id} className="flex gap-4">
-                                        <div className="w-10 h-10 rounded-full bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center text-primary-700 dark:text-primary-300 font-bold flex-shrink-0">
-                                            {comment.user_name ? comment.user_name.charAt(0).toUpperCase() : 'U'}
-                                        </div>
-                                        <div className="bg-gray-50 dark:bg-dark-card p-4 rounded-2xl rounded-tl-none border border-gray-100 dark:border-dark-border flex-grow">
-                                            <div className="flex justify-between items-start mb-2">
-                                                <span className="font-heading font-semibold text-gray-900 dark:text-white">{comment.user_name}</span>
-                                                <span className="text-xs text-gray-400"><Clock size={12} className="inline mr-1" />{new Date(comment.created_at).toLocaleDateString()}</span>
-                                            </div>
-                                            <p className="text-gray-700 dark:text-gray-300 text-sm leading-relaxed">{comment.comment}</p>
-                                        </div>
-                                    </div>
-                                ))
+                            {comments.length > 0 && (
+                                <span className="text-xs text-gray-400 font-bold uppercase tracking-widest hidden md:block">
+                                    {comments.length} {comments.length === 1 ? 'comment' : 'comments'}
+                                </span>
                             )}
                         </div>
+
+                        {/* Comment List */}
+                        <div className="space-y-6 mb-12">
+                            {comments.length === 0 ? (
+                                <div className="text-center py-14 px-6 bg-white dark:bg-dark-card rounded-3xl border border-gray-100 dark:border-white/5 shadow-soft">
+                                    <div className="w-16 h-16 rounded-2xl bg-primary-50 dark:bg-primary-900/20 flex items-center justify-center text-primary-500 mx-auto mb-4">
+                                        <Send size={28} />
+                                    </div>
+                                    <h4 className="text-lg font-black text-gray-900 dark:text-white mb-2">Start the conversation</h4>
+                                    <p className="text-gray-400 text-sm">Be the first to share your thoughts on this article.</p>
+                                </div>
+                            ) : (
+                                comments.map((comment, idx) => {
+                                    const initials = (comment.user_name || 'U').charAt(0).toUpperCase();
+                                    const gradients = [
+                                        'from-violet-500 to-purple-600',
+                                        'from-blue-500 to-cyan-500',
+                                        'from-emerald-500 to-teal-600',
+                                        'from-orange-500 to-rose-500',
+                                        'from-pink-500 to-fuchsia-600',
+                                    ];
+                                    const gradient = gradients[idx % gradients.length];
+                                    return (
+                                        <div key={comment.id} className="flex gap-4 group">
+                                            {/* Avatar */}
+                                            <div className={`w-11 h-11 rounded-2xl bg-gradient-to-br ${gradient} flex items-center justify-center text-white font-black text-base flex-shrink-0 shadow-md mt-1`}>
+                                                {initials}
+                                            </div>
+                                            {/* Bubble */}
+                                            <div className="flex-1 bg-white dark:bg-dark-card border border-gray-100 dark:border-white/5 rounded-3xl rounded-tl-lg p-5 shadow-soft group-hover:border-primary-200 dark:group-hover:border-primary-900/50 transition-colors">
+                                                <div className="flex items-center justify-between mb-3">
+                                                    <span className="font-black text-gray-900 dark:text-white text-sm">
+                                                        {comment.user_name || 'Anonymous'}
+                                                    </span>
+                                                    <span className="flex items-center gap-1 text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                                                        <Clock size={10} />
+                                                        {new Date(comment.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                                                    </span>
+                                                </div>
+                                                <p className="text-gray-600 dark:text-gray-300 text-sm leading-relaxed">{comment.comment}</p>
+                                            </div>
+                                        </div>
+                                    );
+                                })
+                            )}
+                        </div>
+
+                        {/* Comment Form */}
+                        <div className="bg-white dark:bg-dark-card rounded-3xl border border-gray-100 dark:border-white/5 shadow-soft overflow-hidden">
+                            {/* Form Header */}
+                            <div className="bg-gradient-to-r from-primary-600 to-indigo-600 px-6 md:px-8 py-5 flex items-center gap-3">
+                                <div className="w-8 h-8 rounded-xl bg-white/20 flex items-center justify-center">
+                                    <Send size={14} className="text-white" />
+                                </div>
+                                <div>
+                                    <h4 className="font-black text-white text-sm uppercase tracking-wider">Leave a Comment</h4>
+                                    <p className="text-white/60 text-[10px] font-medium mt-0.5">Comments are reviewed before being published</p>
+                                </div>
+                            </div>
+
+                            {/* Form Body */}
+                            <form onSubmit={handleCommentSubmit} className="p-6 md:p-8 space-y-4">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    <div>
+                                        <label htmlFor="guestName" className="block text-xs font-black text-gray-500 dark:text-gray-400 uppercase tracking-widest mb-2">Your Name *</label>
+                                        <input
+                                            type="text"
+                                            id="guestName"
+                                            className="w-full bg-gray-50 dark:bg-dark-bg border border-gray-200 dark:border-white/5 rounded-2xl px-4 py-3 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
+                                            placeholder="John Doe"
+                                            required
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-black text-gray-500 dark:text-gray-400 uppercase tracking-widest mb-2">Email <span className="text-gray-300 dark:text-white/20 font-normal normal-case">(optional, not shown)</span></label>
+                                        <input
+                                            type="email"
+                                            className="w-full bg-gray-50 dark:bg-dark-bg border border-gray-200 dark:border-white/5 rounded-2xl px-4 py-3 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
+                                            placeholder="you@example.com"
+                                        />
+                                    </div>
+                                </div>
+                                <div>
+                                    <label htmlFor="commentText" className="block text-xs font-black text-gray-500 dark:text-gray-400 uppercase tracking-widest mb-2">Your Thoughts *</label>
+                                    <textarea
+                                        id="commentText"
+                                        value={newComment}
+                                        onChange={(e) => setNewComment(e.target.value)}
+                                        className="w-full bg-gray-50 dark:bg-dark-bg border border-gray-200 dark:border-white/5 rounded-2xl px-4 py-3 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all min-h-[130px] resize-y"
+                                        placeholder="What do you think about this article? Share your perspective..."
+                                        required
+                                    />
+                                </div>
+                                <div className="flex items-center justify-between pt-2">
+                                    <p className="text-[10px] text-gray-400 font-medium">* Required fields. Comments pending moderation.</p>
+                                    <button
+                                        type="submit"
+                                        className="flex items-center gap-2 bg-primary-600 hover:bg-primary-700 text-white font-black text-xs uppercase tracking-widest px-6 py-3 rounded-2xl transition-all hover:shadow-neon-primary hover:-translate-y-0.5 active:translate-y-0"
+                                    >
+                                        <Send size={14} /> Post Comment
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+
                     </section>
                 </div>
             </div>
