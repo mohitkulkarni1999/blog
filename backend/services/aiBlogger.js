@@ -44,36 +44,48 @@ Return ONLY a valid JSON object (no markdown, no code blocks, no extra text) wit
   "category_suggestion": "one of: Technology, Business, Health, Science, Sports, Entertainment, Politics, World"
 }`;
 
-    try {
-        const response = await axios.post(
-            `${GEMINI_API_URL}?key=${process.env.GEMINI_API_KEY}`,
-            {
-                contents: [{ parts: [{ text: prompt }] }],
-                generationConfig: { temperature: 0.7, maxOutputTokens: 2048 }
-            },
-            { headers: { 'Content-Type': 'application/json' }, timeout: 30000 }
-        );
+    const MAX_RETRIES = 3;
+    for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+        try {
+            const response = await axios.post(
+                `${GEMINI_API_URL}?key=${process.env.GEMINI_API_KEY}`,
+                {
+                    contents: [{ parts: [{ text: prompt }] }],
+                    generationConfig: { temperature: 0.7, maxOutputTokens: 2048 }
+                },
+                { headers: { 'Content-Type': 'application/json' }, timeout: 30000 }
+            );
 
-        const text = response.data?.candidates?.[0]?.content?.parts?.[0]?.text;
-        if (!text) throw new Error('Empty response from Gemini');
+            const text = response.data?.candidates?.[0]?.content?.parts?.[0]?.text;
+            if (!text) throw new Error('Empty response from Gemini');
 
-        // Strip any accidental markdown code fences
-        const cleaned = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-        const parsed = JSON.parse(cleaned);
-        return parsed;
+            const cleaned = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+            const parsed = JSON.parse(cleaned);
+            return parsed;
 
-    } catch (error) {
-        const status = error.response?.status;
-        const errMsg = error.response?.data?.error?.message || error.message;
-        if (status === 401 || status === 403) {
-            console.error('[AI Blogger] ❌ Invalid Gemini API key — update GEMINI_API_KEY in Render env vars');
-        } else if (status === 429) {
-            console.error('[AI Blogger] ⏳ Rate limited by Gemini — will retry tomorrow');
-        } else {
-            console.error(`[AI Blogger] Gemini generation failed (${status}): ${errMsg}`);
+        } catch (error) {
+            const status = error.response?.status;
+            const errMsg = error.response?.data?.error?.message || error.message;
+
+            if (status === 401 || status === 403) {
+                console.error('[AI Blogger] ❌ Invalid Gemini API key — update GEMINI_API_KEY in Render env vars');
+                return null; // No point retrying
+            } else if (status === 429) {
+                const waitSec = attempt * 30; // 30s, 60s, 90s
+                console.warn(`[AI Blogger] ⏳ Rate limited (attempt ${attempt}/${MAX_RETRIES}) — waiting ${waitSec}s...`);
+                if (attempt < MAX_RETRIES) {
+                    await new Promise(r => setTimeout(r, waitSec * 1000));
+                } else {
+                    console.error('[AI Blogger] ❌ Rate limit exceeded after all retries. Try again in a few minutes.');
+                    return null;
+                }
+            } else {
+                console.error(`[AI Blogger] Gemini failed (${status}): ${errMsg}`);
+                return null;
+            }
         }
-        return null;
     }
+    return null;
 }
 
 // ─── Find or create a category in DB ─────────────────────────────────────────
