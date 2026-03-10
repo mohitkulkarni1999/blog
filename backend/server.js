@@ -76,13 +76,26 @@ app.use((err, req, res, next) => {
 
 const PORT = process.env.PORT || 5000;
 
+const connectWithRetry = async (retries = 5, delay = 5000) => {
+    for (let i = 1; i <= retries; i++) {
+        try {
+            const connection = await pool.getConnection();
+            console.log('✅ Connected to MySQL database!');
+            connection.release();
+            return;
+        } catch (err) {
+            console.error(`❌ DB connection attempt ${i}/${retries} failed: ${err.message}`);
+            if (i < retries) {
+                console.log(`   Retrying in ${delay / 1000}s...`);
+                await new Promise(resolve => setTimeout(resolve, delay));
+            } else {
+                console.error('🚨 Could not connect to database after all retries. Server will continue but queries may fail.');
+            }
+        }
+    }
+};
+
 app.listen(PORT, async () => {
     console.log(`Server running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`);
-    try {
-        const connection = await pool.getConnection();
-        console.log('Connected to MySQL database!');
-        connection.release();
-    } catch (err) {
-        console.error('Database connection failed:', err.message);
-    }
+    await connectWithRetry();
 });
