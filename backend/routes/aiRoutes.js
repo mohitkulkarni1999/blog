@@ -38,7 +38,7 @@ router.get('/status', (req, res) => {
         postsPerDay: parseInt(process.env.AI_BLOGGER_POSTS || '2', 10),
         schedule: process.env.AI_BLOGGER_CRON || '30 2 * * *',
         scheduledTime: '8:00 AM IST daily',
-        model: 'gemini-2.0-flash',
+        model: 'gemini-1.5-flash',
     });
 });
 
