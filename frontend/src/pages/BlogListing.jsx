@@ -268,15 +268,30 @@ const BlogListing = () => {
                             <h4 className="text-lg font-heading font-black text-gray-900 dark:text-white mb-6 md:mb-8 flex items-center gap-3 uppercase tracking-tighter">
                                 <TrendingUp size={22} className="text-primary-600" /> Hot Right Now
                             </h4>
-                            <div className="space-y-8">
+                            <div className="space-y-5">
                                 {featuredPosts.map((fp, i) => (
-                                    <Link key={fp.id} to={`/blog/${fp.slug}`} className="flex gap-4 group">
-                                        <div className="text-4xl font-black text-gray-100 dark:text-white/5 flex-shrink-0 group-hover:text-primary-100 dark:group-hover:text-primary-900/40 transition-colors">0{i + 1}</div>
-                                        <div>
-                                            <h5 className="text-sm font-black text-gray-800 dark:text-white leading-tight group-hover:text-primary-600 transition-colors line-clamp-2">
+                                    <Link key={fp.id} to={`/blog/${fp.slug}`} className="flex gap-3 group items-center">
+                                        {/* Thumbnail */}
+                                        <div className="flex-shrink-0 w-20 h-16 rounded-xl overflow-hidden bg-gray-100 dark:bg-dark-bg">
+                                            {fp.featured_image ? (
+                                                <img
+                                                    src={fp.featured_image}
+                                                    alt={fp.title}
+                                                    loading="lazy"
+                                                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                                                />
+                                            ) : (
+                                                <div className="w-full h-full bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center text-white font-black text-lg">
+                                                    {String(i + 1).padStart(2, '0')}
+                                                </div>
+                                            )}
+                                        </div>
+                                        {/* Text */}
+                                        <div className="flex-1 min-w-0">
+                                            <h5 className="text-sm font-bold text-gray-800 dark:text-white leading-snug group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors line-clamp-2">
                                                 {fp.title}
                                             </h5>
-                                            <p className="text-[10px] font-bold text-gray-400 uppercase mt-2 tracking-widest">{fp.category_name || 'Trending'}</p>
+                                            <p className="text-[10px] font-bold text-gray-400 uppercase mt-1 tracking-widest truncate">{fp.category_name || 'Trending'}</p>
                                         </div>
                                     </Link>
                                 ))}
