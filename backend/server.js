@@ -61,6 +61,11 @@ app.use('/api/comments', require('./routes/commentRoutes'));
 app.use('/api/contact', require('./routes/contactRoutes'));
 app.use('/api/stats', require('./routes/statRoutes'));
 app.use('/api/upload', require('./routes/uploadRoutes'));
+app.use('/api/ai', require('./routes/aiRoutes'));
+
+// Start AI Blog Scheduler
+const { startAIBloggerScheduler } = require('./services/scheduler');
+startAIBloggerScheduler();
 
 const { getSitemap } = require('./controllers/sitemapController');
 app.get('/sitemap.xml', getSitemap);

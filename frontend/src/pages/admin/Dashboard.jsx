@@ -1,20 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import {
-    FileText,
-    Users,
-    Eye,
-    Plus,
-    Edit,
-    Trash2,
-    Globe,
-    Star,
-    MessageSquare,
-    TrendingUp,
-    BarChart3,
-    UserCircle,
-    RotateCw
-} from 'lucide-react';
+import { FileText, Users, Eye, Plus, Edit, Trash2, Globe, Star, MessageSquare, TrendingUp, BarChart3, UserCircle, RotateCw, Sparkles } from 'lucide-react';
 import api from '../../services/api';
 
 const Dashboard = () => {
@@ -30,6 +16,23 @@ const Dashboard = () => {
         totalRatings: 0
     });
     const [loading, setLoading] = useState(true);
+    const [aiGenerating, setAiGenerating] = useState(false);
+    const [aiMsg, setAiMsg] = useState('');
+
+    const triggerAI = async () => {
+        setAiGenerating(true);
+        setAiMsg('');
+        try {
+            const { data } = await api.post('/ai/generate', { count: 2 });
+            setAiMsg(data.message);
+            // Refresh posts list after a delay to show new drafts
+            setTimeout(() => { fetchData(); setAiMsg(''); }, 8000);
+        } catch (err) {
+            setAiMsg('❌ AI generation failed. Check your API keys.');
+        } finally {
+            setAiGenerating(false);
+        }
+    };
 
     const fetchData = async () => {
         try {
@@ -140,18 +143,37 @@ const Dashboard = () => {
     return (
         <div className="space-y-8 pb-12">
 
-            {/* Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
                     <h1 className="text-3xl font-heading font-bold text-gray-900 dark:text-white">Admin Overview</h1>
                     <p className="text-gray-500 dark:text-gray-400 mt-1">Real-time statistics and blog performance tracking.</p>
                 </div>
-                <div className="flex items-center gap-3">
+                <div className="flex flex-wrap items-center gap-3">
+                    <button
+                        onClick={triggerAI}
+                        disabled={aiGenerating}
+                        className="flex items-center gap-2 py-2.5 px-5 text-sm font-bold bg-gradient-to-tr from-violet-600 to-purple-500 text-white rounded-2xl shadow-md hover:shadow-lg transition-all active:scale-95 disabled:opacity-60"
+                    >
+                        {aiGenerating ? (
+                            <><svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" /></svg> AI Writing...</>
+                        ) : (
+                            <><Sparkles size={18} /> Generate AI Blogs</>
+                        )}
+                    </button>
                     <Link to="/admin/create-post" className="btn-primary flex items-center gap-2 py-2.5 px-5 shadow-lg text-sm">
                         <Plus size={18} /> Create New Article
                     </Link>
                 </div>
             </div>
+
+            {/* AI Status Message */}
+            {aiMsg && (
+                <div className="p-4 rounded-2xl bg-violet-50 dark:bg-violet-900/20 border border-violet-200 dark:border-violet-800 text-violet-700 dark:text-violet-300 text-sm font-medium flex items-center gap-3 animate-fade-in-up">
+                    <Sparkles size={18} className="flex-shrink-0" />
+                    {aiMsg}
+                    <span className="text-xs text-violet-500 ml-auto">Drafts will appear in the table below in ~30 seconds</span>
+                </div>
+            )}
 
             {/* Stats Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6">
