@@ -116,16 +116,16 @@ const BlogListing = () => {
                         </h1>
                         <form onSubmit={handleSearchSubmit} className="max-w-xl mx-auto relative group">
                             <div className="absolute inset-0 bg-primary-500/10 blur-xl group-hover:bg-primary-500/20 transition-all rounded-[2rem]"></div>
-                            <div className="relative flex items-center bg-white dark:bg-dark-card border border-gray-200 dark:border-dark-border rounded-xl p-2 shadow-xl focus-within:ring-2 focus-within:ring-primary-500/50 transition-all">
-                                <Search className="ml-4 text-gray-400" size={18} />
+                            <div className="relative flex items-center bg-white dark:bg-dark-card border border-gray-200 dark:border-dark-border rounded-xl p-1.5 md:p-2 shadow-xl focus-within:ring-2 focus-within:ring-primary-500/50 transition-all w-full">
+                                <Search className="ml-2 md:ml-4 text-gray-400 shrink-0" size={18} />
                                 <input
                                     type="text"
                                     placeholder="Search stories..."
-                                    className="flex-grow bg-transparent border-none px-4 py-2 text-gray-800 dark:text-white focus:ring-0 placeholder:text-gray-400 font-medium text-sm"
+                                    className="flex-grow w-full min-w-0 bg-transparent border-none px-2 md:px-4 py-2 text-gray-800 dark:text-white focus:ring-0 placeholder:text-gray-400 font-medium text-sm"
                                     value={search}
                                     onChange={(e) => setSearch(e.target.value)}
                                 />
-                                <button type="submit" className="bg-primary-600 hover:bg-primary-700 text-white font-bold px-6 py-2 rounded-lg transition-all shadow-lg active:scale-95 text-xs uppercase tracking-widest">
+                                <button type="submit" className="bg-primary-600 hover:bg-primary-700 text-white font-bold px-4 md:px-6 py-2 rounded-lg transition-all shadow-lg active:scale-95 text-xs uppercase tracking-widest shrink-0">
                                     Find
                                 </button>
                             </div>
