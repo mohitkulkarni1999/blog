@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Clock, Search, ChevronRight, ChevronLeft, TrendingUp, Tag, ArrowRight, Sparkles } from 'lucide-react';
 import api from '../services/api';
+import { WeatherWidget, MarketWidget } from '../components/BlogWidgets';
 
 const BlogListing = () => {
     const [posts, setPosts] = useState([]);
@@ -262,6 +263,10 @@ const BlogListing = () => {
 
                     {/* Sidebar with Premium Cards */}
                     <aside className="lg:w-1/3 xl:w-[28%] space-y-6 md:space-y-10 animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
+
+                        {/* New Widgets inserted here */}
+                        <WeatherWidget />
+                        <MarketWidget />
 
                         {/* Trending Sidebar */}
                         <div className="bg-white dark:bg-dark-card p-6 md:p-8 rounded-3xl md:rounded-[2rem] shadow-soft border border-gray-100 dark:border-dark-border overflow-hidden relative">

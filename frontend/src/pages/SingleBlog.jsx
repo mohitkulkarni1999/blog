@@ -5,12 +5,14 @@ import api from '../services/api';
 import parse from 'html-react-parser';
 import DOMPurify from 'dompurify';
 import { useAuth } from '../hooks/useAuth';
+import { RelatedPostsGrid } from '../components/BlogWidgets';
 
 const SingleBlog = () => {
     const { slug } = useParams();
     const [post, setPost] = useState(null);
     const [loading, setLoading] = useState(true);
     const [comments, setComments] = useState([]);
+    const [relatedPosts, setRelatedPosts] = useState([]);
     const [newComment, setNewComment] = useState('');
     const [ratingHover, setRatingHover] = useState(0);
     const [isSubmittingRating, setIsSubmittingRating] = useState(false);
@@ -29,8 +31,12 @@ const SingleBlog = () => {
             });
 
             if (data.id) {
-                const commentsRes = await api.get(`/comments/post/${data.id}`);
+                const [commentsRes, relatedRes] = await Promise.all([
+                    api.get(`/comments/post/${data.id}`),
+                    api.get(`/posts?limit=3`)
+                ]);
                 setComments(commentsRes.data || []);
+                setRelatedPosts(relatedRes.data?.posts?.filter(p => p.id !== data.id) || []);
             }
         } catch (error) {
             console.error('Failed to fetch post', error);
@@ -424,6 +430,12 @@ const SingleBlog = () => {
                     </section>
                 </div>
             </div>
+
+            {/* Related Posts Section embedded here */}
+            <div className="container mx-auto px-4 max-w-4xl pt-10">
+                <RelatedPostsGrid posts={relatedPosts} />
+            </div>
+
         </article>
     );
 };
