@@ -100,8 +100,7 @@ const Header = () => {
                             D
                         </div>
                         <span className={`font-heading font-black text-lg md:text-xl tracking-tighter transition-colors duration-300 ${scrolled ? 'text-gray-900 dark:text-white' : 'text-gray-900 dark:text-white md:text-gray-900'}`}>
-                            DailyUpdates<span className="text-primary-600 hidden sm:inline">Hub</span>
-                            <span className="text-primary-600 sm:hidden">H</span>
+                            DailyUpdates<span className="text-primary-600">Hub</span>
                         </span>
                     </Link>
 

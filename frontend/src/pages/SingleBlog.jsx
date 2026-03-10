@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { Share2, Clock, User, ArrowLeft, Send, Star, Eye } from 'lucide-react';
+import { Share2, Clock, User, ArrowLeft, Send, Star, Eye, Facebook, Twitter, Linkedin, Link2 } from 'lucide-react';
 import api from '../services/api';
 import parse from 'html-react-parser';
 import DOMPurify from 'dompurify';
@@ -168,6 +168,39 @@ const SingleBlog = () => {
                     className="h-full bg-gradient-to-r from-primary-600 to-indigo-500 transition-all duration-150 ease-out shadow-neon-primary"
                     style={{ width: scrollProgress }}
                 />
+            </div>
+
+            {/* Mobile-Optimized Floating Social Dock */}
+            <div className="fixed bottom-6 left-1/2 -translate-x-1/2 md:left-auto md:-translate-x-0 md:bottom-auto md:top-1/2 md:-translate-y-1/2 md:right-8 z-50 flex md:flex-col gap-2 md:gap-3 bg-white/90 dark:bg-[#0b0e14]/90 backdrop-blur-xl p-3 md:p-4 rounded-full md:rounded-[2rem] border border-gray-100 dark:border-white/10 shadow-2xl transition-all duration-500 animate-fade-in-up">
+                <button
+                    onClick={() => window.open(`https://twitter.com/intent/tweet?url=${window.location.href}&text=${encodeURIComponent(post.title)}`, '_blank')}
+                    className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-gray-50 dark:bg-white/5 hover:bg-[#1DA1F2] hover:text-white dark:hover:bg-[#1DA1F2] text-gray-400 flex items-center justify-center transition-all hover:scale-110 active:scale-95"
+                    aria-label="Share on Twitter"
+                >
+                    <Twitter size={20} className="md:w-6 md:h-6" />
+                </button>
+                <button
+                    onClick={() => window.open(`https://www.facebook.com/sharer/sharer.php?u=${window.location.href}`, '_blank')}
+                    className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-gray-50 dark:bg-white/5 hover:bg-[#4267B2] hover:text-white dark:hover:bg-[#4267B2] text-gray-400 flex items-center justify-center transition-all hover:scale-110 active:scale-95"
+                    aria-label="Share on Facebook"
+                >
+                    <Facebook size={20} className="md:w-6 md:h-6" />
+                </button>
+                <button
+                    onClick={() => window.open(`https://www.linkedin.com/shareArticle?mini=true&url=${window.location.href}&title=${encodeURIComponent(post.title)}`, '_blank')}
+                    className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-gray-50 dark:bg-white/5 hover:bg-[#0077b5] hover:text-white dark:hover:bg-[#0077b5] text-gray-400 flex items-center justify-center transition-all hover:scale-110 active:scale-95"
+                    aria-label="Share on LinkedIn"
+                >
+                    <Linkedin size={20} className="md:w-6 md:h-6" />
+                </button>
+                <div className="w-px h-6 md:w-6 md:h-px bg-gray-200 dark:bg-white/10 mx-1 md:mx-auto my-auto md:my-1"></div>
+                <button
+                    onClick={() => { navigator.clipboard.writeText(window.location.href); alert('Link copied!'); }}
+                    className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-primary-50 dark:bg-primary-900/20 hover:bg-primary-600 hover:text-white dark:hover:bg-primary-600 focus:bg-emerald-500 focus:text-white focus:ring-4 focus:ring-emerald-500/30 text-primary-600 dark:text-primary-400 flex items-center justify-center transition-all hover:scale-110 active:scale-95"
+                    aria-label="Copy Link"
+                >
+                    <Link2 size={20} className="md:w-6 md:h-6" />
+                </button>
             </div>
 
             {/* Content Header Section */}
