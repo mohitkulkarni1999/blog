@@ -7,10 +7,15 @@ const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/
 // ─── Fetch top news headlines ─────────────────────────────────────────────────
 async function fetchTopNews(count = 2) {
     try {
+        // Build topical authority in 2 specific silos: Technology & Business
+        const silos = ['technology', 'business'];
+        const randomSilo = silos[Math.floor(Math.random() * silos.length)];
+
         const response = await axios.get('https://newsapi.org/v2/top-headlines', {
             params: {
                 language: 'en',
-                pageSize: 10,
+                category: randomSilo,
+                pageSize: 15,
                 apiKey: process.env.NEWS_API_KEY,
             },
             timeout: 10000,
@@ -29,19 +34,28 @@ async function fetchTopNews(count = 2) {
 
 // ─── Generate a full blog post using Gemini REST API ─────────────────────────
 async function generateBlogFromNews(article) {
-    const prompt = `You are an expert blog writer. Based on this news headline, write a comprehensive, engaging blog post.
+    const prompt = `You are a Senior Tech/Business Journalist writing for DailyUpdatesHub.
+Based on this news headline, write a highly detailed, magazine-style professional news article. 
+You MUST write at least 800 words to avoid 'Thin Content' penalties.
 
 NEWS HEADLINE: "${article.title}"
 NEWS DESCRIPTION: "${article.description}"
 DATE: ${new Date().toDateString()}
 
+FORMAT STRICTLY IN HTML. Must include:
+1. A brief introductory hook paragraph.
+2. A "Key Takeaways" bulleted list (<ul>) right after the intro.
+3. At least 3 different <h2> subheadings dividing the story into logical sections (Context, Data/Impact, Future).
+4. A "Why This Matters" or "The Bigger Picture" <h3> section at the very end analyzing the impact.
+5. Rich formatting: use <strong> for emphasis and <blockquote> for quotes if relevant.
+
 Return ONLY a valid JSON object (no markdown, no code blocks, no extra text) with these exact fields:
 {
-  "title": "engaging SEO-friendly blog post title",
-  "content": "full HTML blog post with h2, h3, p, ul, li tags - minimum 500 words",
+  "title": "engaging, click-worthy SEO blog post title",
+  "content": "Full HTML blog post fitting the rules above, minimum 800 words",
   "meta_title": "SEO meta title under 60 characters",
-  "meta_description": "SEO meta description under 160 characters",
-  "category_suggestion": "one of: Technology, Business, Health, Science, Sports, Entertainment, Politics, World"
+  "meta_description": "SEO meta description under 160 characters analyzing the impact",
+  "category_suggestion": "Technology or Business"
 }`;
 
     const MAX_RETRIES = 3;

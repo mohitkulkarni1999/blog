@@ -54,23 +54,15 @@ const Contact = () => {
                                 </li>
                                 <li className="flex items-start gap-4">
                                     <div className="w-12 h-12 rounded-full bg-primary-50 dark:bg-primary-900/20 flex items-center justify-center text-primary-600 dark:text-primary-400 flex-shrink-0">
-                                        <Phone size={24} />
-                                    </div>
-                                    <div>
-                                        <h4 className="font-semibold text-gray-900 dark:text-white text-lg">Call Us</h4>
-                                        <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">+91 98765 43210</p>
-                                    </div>
-                                </li>
-                                <li className="flex items-start gap-4">
-                                    <div className="w-12 h-12 rounded-full bg-primary-50 dark:bg-primary-900/20 flex items-center justify-center text-primary-600 dark:text-primary-400 flex-shrink-0">
                                         <MapPin size={24} />
                                     </div>
                                     <div>
                                         <h4 className="font-semibold text-gray-900 dark:text-white text-lg">Location</h4>
-                                        <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">Tech Hub, Silicon Valley, Bangalore, India</p>
+                                        <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">Digital Publication, Based in India</p>
                                     </div>
                                 </li>
                             </ul>
+
                         </div>
                     </div>
 
