@@ -38,6 +38,15 @@ export default {
                 'soft': '0 4px 20px -2px rgba(0, 0, 0, 0.05)',
                 'neon': '0 0 10px rgba(59, 130, 246, 0.5)',
             },
+            keyframes: {
+                marquee: {
+                    '0%': { transform: 'translateX(100%)' },
+                    '100%': { transform: 'translateX(-100%)' },
+                }
+            },
+            animation: {
+                marquee: 'marquee 25s linear infinite',
+            },
             typography: (theme) => ({
                 DEFAULT: {
                     css: {

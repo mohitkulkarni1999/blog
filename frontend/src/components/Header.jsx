@@ -5,8 +5,21 @@ import api from '../services/api';
 
 const Header = () => {
     const [isOpen, setIsOpen] = useState(false);
-    const [theme, setTheme] = useState(localStorage.getItem('theme') || 'light');
+
+    // System-Responsive Dark Mode
+    const getInitialTheme = () => {
+        if (typeof window !== 'undefined' && window.localStorage) {
+            const storedPrefs = window.localStorage.getItem('theme');
+            if (typeof storedPrefs === 'string') return storedPrefs;
+            const userMedia = window.matchMedia('(prefers-color-scheme: dark)');
+            if (userMedia.matches) return 'dark';
+        }
+        return 'light'; // default
+    };
+
+    const [theme, setTheme] = useState(getInitialTheme);
     const [categories, setCategories] = useState([]);
+    const [headlines, setHeadlines] = useState([]);
     const [isCatOpen, setIsCatOpen] = useState(false);
     const [scrolled, setScrolled] = useState(false);
 
@@ -17,15 +30,19 @@ const Header = () => {
     }, []);
 
     useEffect(() => {
-        const fetchCategories = async () => {
+        const fetchData = async () => {
             try {
-                const { data } = await api.get('/categories');
-                setCategories(data || []);
+                const [catRes, postRes] = await Promise.all([
+                    api.get('/categories'),
+                    api.get('/posts?page=1&limit=3') // recent for ticker
+                ]);
+                setCategories(catRes.data || []);
+                setHeadlines(postRes.data?.posts || []);
             } catch (err) {
-                console.error('Failed to fetch categories', err);
+                console.error('Failed to fetch header data', err);
             }
         };
-        fetchCategories();
+        fetchData();
     }, []);
 
     useEffect(() => {
@@ -42,9 +59,40 @@ const Header = () => {
     };
 
     return (
-        <header className={`fixed top-0 left-0 w-full z-50 transition-all duration-300 ${scrolled ? 'py-3' : 'py-5'}`}>
-            <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-                <div className={`relative flex justify-between items-center px-6 py-3 rounded-2xl transition-all duration-500 shadow-2xl ${scrolled ? 'bg-white/70 dark:bg-dark-card/70 backdrop-blur-xl border border-white/20 dark:border-white/5' : 'bg-transparent border border-transparent'}`}>
+        <header className={`fixed top-0 left-0 w-full z-50 transition-all duration-300 ${scrolled ? 'py-0' : 'py-0'}`}>
+
+            {/* Dynamic CSS-Animated Breaking News Ticker */}
+            <div className={`w-full bg-primary-600 text-white overflow-hidden flex items-center h-8 transition-all duration-500 ${scrolled ? 'h-0 opacity-0' : ''}`}>
+                <div className="bg-primary-800 text-xs font-black uppercase tracking-widest px-4 py-2 h-full flex items-center z-10 shadow-[5px_0_10px_rgba(0,0,0,0.2)] whitespace-nowrap">
+                    <Sparkles size={12} className="mr-2 text-yellow-300" />
+                    Breaking
+                </div>
+                <div className="flex-1 overflow-hidden relative h-full flex items-center">
+                    <div className="animate-marquee whitespace-nowrap flex items-center gap-10 hover:pause w-full absolute left-0">
+                        {headlines.length > 0 ? headlines.map((post, i) => (
+                            <Link key={i} to={`/blog/${post.slug}`} className="text-xs font-medium hover:underline flex items-center">
+                                <span className="w-1.5 h-1.5 rounded-full bg-yellow-300 mr-2 inline-block"></span>
+                                {post.title}
+                            </Link>
+                        )) : (
+                            <span className="text-xs font-medium flex items-center">
+                                <span className="w-1.5 h-1.5 rounded-full bg-yellow-300 mr-2 inline-block"></span>
+                                Welcome to DailyUpdatesHub — Your premium source for global insights.
+                            </span>
+                        )}
+                        {/* Duplicate for seamless infinite scrolling */}
+                        {headlines.length > 0 ? headlines.map((post, i) => (
+                            <Link key={`dup-${i}`} to={`/blog/${post.slug}`} className="text-xs font-medium hover:underline flex items-center">
+                                <span className="w-1.5 h-1.5 rounded-full bg-yellow-300 mr-2 inline-block"></span>
+                                {post.title}
+                            </Link>
+                        )) : null}
+                    </div>
+                </div>
+            </div>
+
+            <div className={`container mx-auto px-4 sm:px-6 lg:px-8 transition-all duration-300 ${scrolled ? 'pt-3' : 'pt-5'}`}>
+                <div className={`relative flex justify-between items-center px-6 py-3 rounded-2xl transition-all duration-500 shadow-2xl ${scrolled ? 'bg-white/70 dark:bg-dark-card/70 backdrop-blur-xl border border-white/20 dark:border-white/5' : 'bg-white dark:bg-[#0b0e14] border border-gray-100 dark:border-white/5'}`}>
 
                     {/* Brand Logo */}
                     <Link to="/" className="flex items-center gap-2 md:gap-3 group shrink-0">
