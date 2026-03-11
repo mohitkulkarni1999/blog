@@ -34,28 +34,34 @@ async function fetchTopNews(count = 2) {
 
 // ─── Generate a full blog post using Gemini REST API ─────────────────────────
 async function generateBlogFromNews(article) {
-    const prompt = `You are a Senior Tech/Business Journalist writing for DailyUpdatesHub.
-Based on this news headline, write a highly detailed, magazine-style professional news article. 
-You MUST write at least 800 words to avoid 'Thin Content' penalties.
+    const prompt = `You are an elite, Pulitzer-winning investigative journalist and Senior Editor writing an extremely comprehensive, long-form feature article for the premium digital magazine 'DailyUpdatesHub'. You are renowned for your incredibly deep analysis, sophisticated vocabulary, and massive, detailed articles.
+
+Your assignment is to write a highly detailed, deeply researched, and authoritative article based purely on the breaking news provided below.
+
+🚨 STRICT LONG-FORM REQUIREMENTS 🚨: 
+- You MUST write an absolute minimum of 1,200 to 1,500 words. (Do not write a short summary).
+- The article MUST contain at least 15 robust paragraphs of text.
+- Expand deeply on the background, the global implications, theoretical outcomes, and the historical context surrounding this topic. Treat it like a massive Wikipedia-style deep dive crossed with a premium Bloomberg Markets feature.
+- Do not repeat yourself to reach the word count; invent plausible, highly professional analytical commentary, industry reactions, and detailed hypotheticals.
 
 NEWS HEADLINE: "${article.title}"
 NEWS DESCRIPTION: "${article.description}"
-DATE: ${new Date().toDateString()}
+CURRENT DATE: ${new Date().toDateString()}
 
-FORMAT STRICTLY IN HTML. Must include:
-1. A brief introductory hook paragraph.
-2. A "Key Takeaways" bulleted list (<ul>) right after the intro.
-3. At least 3 different <h2> subheadings dividing the story into logical sections (Context, Data/Impact, Future).
-4. A "Why This Matters" or "The Bigger Picture" <h3> section at the very end analyzing the impact.
-5. Rich formatting: use <strong> for emphasis and <blockquote> for quotes if relevant.
+STRUCTURE YOUR HTML STRICTLY WITH THESE SECTIONS:
+1. An explosive, 2-paragraph introductory hook that immediately grabs the reader's attention.
+2. A "⚡ Key Takeaways" section using an unordered list (<ul>) with 4-5 profound bullet points.
+3. At least 5 distinct <h2> subheadings dividing the massive story (Examples: "Historical Context & Background", "The Immediate Global Impact", "Behind Closed Doors: Industry Reactions", "What This Means For Investors/Consumers", and "Looking Ahead: The Long-Term Trajectory"). Each <h2> section MUST have at least 3 thick paragraphs of detailed writing.
+4. A bold, final <h3> section named "The Bigger Picture".
+5. Provide rich semantic HTML formatting natively inside the text: heavy use of <strong> for keywords, <em> for emphasis, and at least two stylized <blockquote> blocks representing "industry expert" or "analyst" commentary.
 
-Return ONLY a valid JSON object (no markdown, no code blocks, no extra text) with these exact fields:
+Return ONLY a valid JSON object matching the exact schema (no markdown formatting blocks, just raw JSON text) with these fields:
 {
-  "title": "engaging, click-worthy SEO blog post title",
-  "content": "Full HTML blog post fitting the rules above, minimum 800 words",
+  "title": "A highly engaging, click-worthy SEO optimized blog post title (under 75 words)",
+  "content": "Full HTML blog post fitting all the massive structural requirements above",
   "meta_title": "SEO meta title under 60 characters",
-  "meta_description": "SEO meta description under 160 characters analyzing the impact",
-  "category_suggestion": "Technology or Business"
+  "meta_description": "SEO meta description highly optimized for click-through rate, under 160 characters",
+  "category_suggestion": "Technology, Business, Markets, World, or Science"
 }`;
 
     const MAX_RETRIES = 3;
