@@ -2,7 +2,7 @@ const axios = require('axios');
 const slugify = require('slugify');
 const pool = require('../config/db');
 
-const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent';
+const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent';
 
 // ─── Fetch top news headlines ─────────────────────────────────────────────────
 async function fetchTopNews(count = 2) {
@@ -65,7 +65,22 @@ Return ONLY a valid JSON object (no markdown, no code blocks, no extra text) wit
                 `${GEMINI_API_URL}?key=${process.env.GEMINI_API_KEY}`,
                 {
                     contents: [{ parts: [{ text: prompt }] }],
-                    generationConfig: { temperature: 0.7, maxOutputTokens: 2048 }
+                    generationConfig: { 
+                        temperature: 0.7, 
+                        maxOutputTokens: 3000,
+                        responseMimeType: "application/json",
+                        responseSchema: {
+                            type: "OBJECT",
+                            properties: {
+                                title: { type: "STRING" },
+                                content: { type: "STRING" },
+                                meta_title: { type: "STRING" },
+                                meta_description: { type: "STRING" },
+                                category_suggestion: { type: "STRING" }
+                            },
+                            required: ["title", "content", "meta_title", "meta_description", "category_suggestion"]
+                        }
+                    }
                 },
                 { headers: { 'Content-Type': 'application/json' }, timeout: 30000 }
             );
@@ -74,8 +89,13 @@ Return ONLY a valid JSON object (no markdown, no code blocks, no extra text) wit
             if (!text) throw new Error('Empty response from Gemini');
 
             const cleaned = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-            const parsed = JSON.parse(cleaned);
-            return parsed;
+            try {
+                const parsed = JSON.parse(cleaned);
+                return parsed;
+            } catch (err) {
+                console.error("[AI Blogger] JSON PARSE ERROR:", err.message);
+                throw err;
+            }
 
         } catch (error) {
             const status = error.response?.status;
