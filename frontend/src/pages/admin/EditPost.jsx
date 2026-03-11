@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Save, Image as ImageIcon, CheckCircle, AlertCircle, Trash2, Plus, Loader2 } from 'lucide-react';
+import { Save, Image as ImageIcon, CheckCircle, AlertCircle, Trash2, Plus, Loader2, FileText, Search, Tag, ChevronDown, X } from 'lucide-react';
 import api from '../../services/api';
 
 const EditPost = () => {
@@ -130,143 +130,314 @@ const EditPost = () => {
         </div>
     );
 
+    const metaTitleLen = formData.meta_title?.length || 0;
+    const metaDescLen = formData.meta_description?.length || 0;
+
     return (
-        <div className="max-w-4xl mx-auto space-y-6">
-            <div className="flex justify-between items-center mb-6">
-                <h2 className="text-3xl font-heading font-extrabold text-gray-900 dark:text-white">Edit Post</h2>
+        <div className="min-h-screen pb-16">
+
+            {/* ── Page Header ───────────────────────────────────── */}
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
+                <div>
+                    <h2 className="text-2xl sm:text-3xl font-heading font-extrabold text-gray-900 dark:text-white tracking-tight">
+                        Edit Post
+                    </h2>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Make changes to your blog post or manage its status.</p>
+                </div>
+                <div className="flex items-center gap-3">
+                    <button
+                        type="button"
+                        onClick={() => navigate('/admin')}
+                        className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-gray-600 dark:text-gray-300 bg-white dark:bg-dark-card border border-gray-200 dark:border-dark-border rounded-xl hover:bg-gray-50 dark:hover:bg-white/5 transition-all"
+                    >
+                        <X size={16} /> Cancel
+                    </button>
+                    <button
+                        type="button"
+                        onClick={handleSubmit}
+                        disabled={saving}
+                        className="flex items-center gap-2 px-5 py-2 text-sm font-bold bg-gradient-to-tr from-primary-600 to-primary-500 text-white rounded-xl shadow-md hover:shadow-neon-primary transition-all active:scale-95 disabled:opacity-60"
+                    >
+                        {saving ? (
+                            <span className="flex items-center gap-2">
+                                <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
+                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                                </svg>
+                                Updating...
+                            </span>
+                        ) : (
+                            <><Save size={16} /> Update Post</>
+                        )}
+                    </button>
+                </div>
             </div>
 
+            {/* ── Status Banner ─────────────────────────────────── */}
             {statusMsg.msg && (
-                <div className={`p-4 rounded-xl flex items-center gap-3 font-medium animate-fade-in ${statusMsg.type === 'success' ? 'bg-green-50 text-green-700 border border-green-200 dark:bg-green-900/30' : 'bg-red-50 text-red-700 border border-red-200 dark:bg-red-900/30'
+                <div className={`mb-6 p-4 rounded-2xl flex items-center gap-3 font-medium text-sm border animate-fade-in-up ${statusMsg.type === 'success'
+                        ? 'bg-green-50 text-green-700 border-green-200 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800'
+                        : 'bg-red-50 text-red-700 border-red-200 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800'
                     }`}>
-                    {statusMsg.type === 'success' ? <CheckCircle size={20} /> : <AlertCircle size={20} />}
+                    {statusMsg.type === 'success' ? <CheckCircle size={18} /> : <AlertCircle size={18} />}
                     {statusMsg.msg}
                 </div>
             )}
 
-            <form onSubmit={handleSubmit} className="bg-white dark:bg-dark-card rounded-2xl shadow-soft border border-gray-100 dark:border-dark-border p-8">
-                <div className="space-y-6">
-                    <h3 className="text-xl font-heading font-semibold pb-4 border-b border-gray-100 dark:border-dark-border mb-6">Basic Information</h3>
-                    <div>
-                        <label htmlFor="title" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Post Title *</label>
-                        <input
-                            type="text"
-                            id="title"
-                            name="title"
-                            value={formData.title}
-                            onChange={handleChange}
-                            required
-                            className="input-field py-3 text-lg font-heading"
-                            placeholder="Enter title..."
-                        />
-                    </div>
+            {/* ── Two-Column Layout ─────────────────────────────── */}
+            <form id="edit-post-form" onSubmit={handleSubmit}>
+                <div className="grid grid-cols-1 xl:grid-cols-[1fr_340px] gap-6">
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div>
-                            <label htmlFor="category_id" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Category</label>
-                            <select
-                                id="category_id"
-                                name="category_id"
-                                value={formData.category_id}
-                                onChange={handleChange}
-                                className="input-field py-3"
-                            >
-                                <option value="">Select Category</option>
-                                {categories.map((cat) => (
-                                    <option key={cat.id} value={cat.id}>{cat.name}</option>
-                                ))}
-                            </select>
-                        </div>
-                        <div>
-                            <label htmlFor="status" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Status</label>
-                            <select
-                                id="status"
-                                name="status"
-                                value={formData.status}
-                                onChange={handleChange}
-                                className="input-field py-3"
-                            >
-                                <option value="draft">Draft</option>
-                                <option value="published">Published</option>
-                            </select>
-                        </div>
-                    </div>
-                </div>
+                    {/* ── LEFT: Main Content ──────────────────────── */}
+                    <div className="space-y-6">
 
-                <div className="mt-10 space-y-6">
-                    <h3 className="text-xl font-heading font-semibold pb-4 border-b border-gray-100 dark:border-dark-border mb-6">Post Content</h3>
-                    <div className="relative">
-                        <label htmlFor="content" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Content (HTML supported) *</label>
-                        <textarea
-                            id="content"
-                            name="content"
-                            rows="12"
-                            value={formData.content}
-                            onChange={handleChange}
-                            required
-                            className="input-field py-4 font-mono text-sm resize-y leading-relaxed"
-                        ></textarea>
-                    </div>
-
-                    <div>
-                        <label htmlFor="featured_image" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Featured Image</label>
-                        <div className="flex gap-4 items-center">
+                        {/* Title Card */}
+                        <div className="bg-white dark:bg-dark-card rounded-2xl border border-gray-100 dark:border-dark-border shadow-soft p-5 sm:p-7">
+                            <label htmlFor="title" className="flex items-center gap-2 text-xs font-black text-gray-400 uppercase tracking-widest mb-3">
+                                <FileText size={14} /> Post Title
+                            </label>
                             <input
                                 type="text"
-                                id="featured_image"
-                                name="featured_image"
-                                value={formData.featured_image}
+                                id="title"
+                                name="title"
+                                value={formData.title}
                                 onChange={handleChange}
-                                className="input-field py-3 flex-1"
+                                required
+                                className="w-full bg-transparent border-none outline-none text-2xl sm:text-3xl font-heading font-extrabold text-gray-900 dark:text-white placeholder:text-gray-300 dark:placeholder:text-gray-700"
+                                placeholder="Enter a compelling title..."
                             />
-                            <label className="btn-outline cursor-pointer">
-                                <ImageIcon size={20} className="mr-2 inline" />
-                                {uploadingImage ? 'Uploading...' : 'Change'}
-                                <input type="file" accept="image/*" className="hidden" onChange={(e) => { uploadFileHandler(e); e.target.value = null; }} disabled={uploadingImage} />
-                            </label>
                         </div>
-                    </div>
 
-                    <div className="pt-4">
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-4">Additional Post Images (Multiple)</label>
-                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 mb-4">
-                            {formData.additional_images.map((img, index) => (
-                                <div key={index} className="relative group aspect-video rounded-xl overflow-hidden border border-gray-100 dark:border-dark-border">
-                                    <img src={img} alt="" className="w-full h-full object-cover" />
-                                    <button type="button" onClick={() => removeImage(index)} className="absolute top-2 right-2 p-1.5 bg-red-600 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
-                                        <Trash2 size={14} />
+                        {/* Content Card */}
+                        <div className="bg-white dark:bg-dark-card rounded-2xl border border-gray-100 dark:border-dark-border shadow-soft overflow-hidden">
+                            <div className="flex items-center justify-between px-5 sm:px-7 py-4 border-b border-gray-100 dark:border-dark-border">
+                                <span className="text-xs font-black text-gray-400 uppercase tracking-widest flex items-center gap-2">
+                                    <FileText size={14} /> Content
+                                    <span className="text-gray-300 dark:text-gray-700 font-normal normal-case tracking-normal">— HTML supported</span>
+                                </span>
+                                <span className="text-xs text-gray-400 font-mono">{formData.content?.length || 0} chars</span>
+                            </div>
+                            <textarea
+                                id="content"
+                                name="content"
+                                rows="18"
+                                value={formData.content}
+                                onChange={handleChange}
+                                required
+                                placeholder="<h1>Start writing your masterpiece...</h1>"
+                                className="w-full p-5 sm:p-7 bg-transparent font-mono text-sm text-gray-800 dark:text-gray-200 placeholder:text-gray-300 dark:placeholder:text-gray-700 focus:outline-none resize-y leading-relaxed"
+                            />
+                        </div>
+
+                        {/* Featured Image Card */}
+                        <div className="bg-white dark:bg-dark-card rounded-2xl border border-gray-100 dark:border-dark-border shadow-soft p-5 sm:p-7">
+                            <label className="flex items-center gap-2 text-xs font-black text-gray-400 uppercase tracking-widest mb-4">
+                                <ImageIcon size={14} /> Featured Image
+                            </label>
+
+                            {formData.featured_image ? (
+                                <div className="relative mb-4 rounded-xl overflow-hidden border border-gray-100 dark:border-dark-border aspect-video bg-gray-50 dark:bg-dark-bg">
+                                    <img src={formData.featured_image} alt="Featured" className="w-full h-full object-cover" />
+                                    <button
+                                        type="button"
+                                        onClick={() => setFormData(p => ({ ...p, featured_image: '' }))}
+                                        className="absolute top-3 right-3 p-1.5 bg-red-600 text-white rounded-full shadow-md hover:bg-red-700 transition-colors"
+                                    >
+                                        <X size={14} />
                                     </button>
                                 </div>
-                            ))}
-                            <label className="flex flex-col items-center justify-center border-2 border-dashed border-gray-200 dark:border-dark-border rounded-xl aspect-video cursor-pointer hover:border-primary-500 transition-colors">
-                                <Plus size={24} className="text-gray-400" />
-                                <span className="text-[10px] font-bold text-gray-400 mt-1 uppercase">Add More</span>
-                                <input type="file" multiple accept="image/*" className="hidden" onChange={(e) => { uploadMultipleHandler(e); e.target.value = null; }} disabled={uploadingMultiple} />
-                            </label>
-                        </div>
-                        {uploadingMultiple && <p className="text-xs text-primary-600 animate-pulse">Uploading...</p>}
-                    </div>
-                </div>
+                            ) : (
+                                <label className="flex flex-col items-center justify-center border-2 border-dashed border-gray-200 dark:border-dark-border rounded-xl aspect-video mb-4 cursor-pointer hover:border-primary-500 dark:hover:border-primary-500 transition-colors group bg-gray-50/50 dark:bg-dark-bg/50">
+                                    {uploadingImage ? (
+                                        <div className="flex flex-col items-center gap-2">
+                                            <svg className="animate-spin h-8 w-8 text-primary-500" viewBox="0 0 24 24" fill="none">
+                                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                                            </svg>
+                                            <span className="text-xs text-gray-400 font-medium">Uploading...</span>
+                                        </div>
+                                    ) : (
+                                        <>
+                                            <ImageIcon size={32} className="text-gray-300 dark:text-gray-700 group-hover:text-primary-500 transition-colors mb-2" />
+                                            <span className="text-sm font-semibold text-gray-400 group-hover:text-primary-500 transition-colors">Click to upload featured image</span>
+                                            <span className="text-xs text-gray-300 dark:text-gray-700 mt-1">PNG, JPG, WEBP</span>
+                                        </>
+                                    )}
+                                    <input type="file" accept="image/*" className="hidden" onChange={(e) => { uploadFileHandler(e); e.target.value = null; }} disabled={uploadingImage} />
+                                </label>
+                            )}
 
-                <div className="mt-10 space-y-6">
-                    <h3 className="text-xl font-heading font-semibold pb-4 border-b border-gray-100 dark:border-dark-border mb-6">SEO Metadata</h3>
-                    <div className="grid grid-cols-1 gap-6">
-                        <div>
-                            <label htmlFor="meta_title" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Meta Title</label>
-                            <input type="text" id="meta_title" name="meta_title" value={formData.meta_title} onChange={handleChange} className="input-field py-3" />
+                            <div className="flex items-center gap-2 mt-2">
+                                <input
+                                    type="text"
+                                    id="featured_image"
+                                    name="featured_image"
+                                    value={formData.featured_image}
+                                    onChange={handleChange}
+                                    className="flex-1 bg-gray-50 dark:bg-dark-bg border border-gray-200 dark:border-dark-border rounded-xl px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 placeholder:text-gray-300 dark:placeholder:text-gray-700 focus:outline-none focus:ring-2 focus:ring-primary-500/40 transition-all"
+                                    placeholder="Or paste image URL directly..."
+                                />
+                            </div>
                         </div>
-                        <div>
-                            <label htmlFor="meta_description" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Meta Description</label>
-                            <textarea id="meta_description" name="meta_description" rows="3" value={formData.meta_description} onChange={handleChange} className="input-field py-3"></textarea>
+
+                        {/* Additional Images Card */}
+                        <div className="bg-white dark:bg-dark-card rounded-2xl border border-gray-100 dark:border-dark-border shadow-soft p-5 sm:p-7">
+                            <div className="flex items-center justify-between mb-4">
+                                <label className="flex items-center gap-2 text-xs font-black text-gray-400 uppercase tracking-widest">
+                                    <Plus size={14} /> Gallery Images
+                                </label>
+                                {uploadingMultiple && (
+                                    <span className="text-xs text-primary-500 animate-pulse font-medium flex items-center gap-1.5">
+                                        <svg className="animate-spin h-3 w-3" viewBox="0 0 24 24" fill="none">
+                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                                        </svg>
+                                        Uploading...
+                                    </span>
+                                )}
+                            </div>
+                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                                {formData.additional_images.map((img, index) => (
+                                    <div key={index} className="relative group aspect-video rounded-xl overflow-hidden border border-gray-100 dark:border-dark-border bg-gray-50 dark:bg-dark-bg">
+                                        <img src={img} alt="" className="w-full h-full object-cover" />
+                                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                        <button
+                                            type="button"
+                                            onClick={() => removeImage(index)}
+                                            className="absolute top-2 right-2 p-1.5 bg-red-600 text-white rounded-full opacity-0 group-hover:opacity-100 transition-all scale-75 group-hover:scale-100"
+                                        >
+                                            <Trash2 size={12} />
+                                        </button>
+                                    </div>
+                                ))}
+                                <label className="flex flex-col items-center justify-center border-2 border-dashed border-gray-200 dark:border-dark-border rounded-xl aspect-video cursor-pointer hover:border-primary-500 dark:hover:border-primary-500 transition-colors bg-gray-50/50 dark:bg-dark-bg/50 group">
+                                    <Plus size={20} className="text-gray-300 dark:text-gray-700 group-hover:text-primary-500 transition-colors" />
+                                    <span className="text-[10px] font-bold text-gray-400 group-hover:text-primary-500 transition-colors mt-1 uppercase tracking-widest">Add More</span>
+                                    <input type="file" multiple accept="image/*" className="hidden" onChange={(e) => { uploadMultipleHandler(e); e.target.value = null; }} disabled={uploadingMultiple} />
+                                </label>
+                            </div>
                         </div>
                     </div>
-                </div>
 
-                <div className="mt-10 pt-6 border-t border-gray-100 dark:border-dark-border flex items-center justify-end gap-4">
-                    <button type="button" onClick={() => navigate('/admin')} className="text-gray-500 hover:text-gray-700 dark:text-gray-400 font-medium px-4">Cancel</button>
-                    <button type="submit" disabled={saving} className="btn-primary flex items-center gap-2 px-8 py-3 text-lg">
-                        {saving ? 'Updating...' : <><Save size={20} /> Update Post</>}
-                    </button>
+                    {/* ── RIGHT: Sidebar ───────────────────────────── */}
+                    <div className="space-y-5">
+
+                        {/* Publish Settings */}
+                        <div className="bg-white dark:bg-dark-card rounded-2xl border border-gray-100 dark:border-dark-border shadow-soft p-5">
+                            <h4 className="text-xs font-black text-gray-400 uppercase tracking-widest mb-4">Publish Settings</h4>
+                            <div className="space-y-4">
+                                <div>
+                                    <label htmlFor="status" className="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1.5">Status</label>
+                                    <div className="relative">
+                                        <select
+                                            id="status"
+                                            name="status"
+                                            value={formData.status}
+                                            onChange={handleChange}
+                                            className="w-full appearance-none bg-gray-50 dark:bg-dark-bg border border-gray-200 dark:border-dark-border rounded-xl px-4 py-2.5 pr-10 text-sm font-semibold text-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500/40 transition-all"
+                                        >
+                                            <option value="draft">📝  Draft</option>
+                                            <option value="published">🟢  Published</option>
+                                        </select>
+                                        <ChevronDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                                    </div>
+                                </div>
+                                <div>
+                                    <label htmlFor="category_id" className="flex items-center gap-1.5 text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1.5">
+                                        <Tag size={12} /> Category
+                                    </label>
+                                    <div className="relative">
+                                        <select
+                                            id="category_id"
+                                            name="category_id"
+                                            value={formData.category_id}
+                                            onChange={handleChange}
+                                            className="w-full appearance-none bg-gray-50 dark:bg-dark-bg border border-gray-200 dark:border-dark-border rounded-xl px-4 py-2.5 pr-10 text-sm font-semibold text-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500/40 transition-all"
+                                        >
+                                            <option value="">— Select Category —</option>
+                                            {categories.map((cat) => (
+                                                <option key={cat.id} value={cat.id}>{cat.name}</option>
+                                            ))}
+                                        </select>
+                                        <ChevronDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                                    </div>
+                                </div>
+                            </div>
+                            <button
+                                type="submit"
+                                disabled={saving}
+                                className="mt-5 w-full flex items-center justify-center gap-2 py-3 bg-gradient-to-tr from-primary-600 to-primary-500 text-white font-bold rounded-xl shadow-md hover:shadow-neon-primary transition-all active:scale-95 disabled:opacity-60 text-sm"
+                            >
+                                {saving ? 'Updating...' : <><Save size={16} /> Update Post</>}
+                            </button>
+                        </div>
+
+                        {/* SEO Card */}
+                        <div className="bg-white dark:bg-dark-card rounded-2xl border border-gray-100 dark:border-dark-border shadow-soft p-5">
+                            <h4 className="text-xs font-black text-gray-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+                                <Search size={13} /> SEO Metadata
+                            </h4>
+                            <div className="space-y-4">
+                                <div>
+                                    <div className="flex justify-between items-center mb-1.5">
+                                        <label htmlFor="meta_title" className="text-xs font-semibold text-gray-500 dark:text-gray-400">Meta Title</label>
+                                        <span className={`text-[10px] font-mono font-bold px-1.5 py-0.5 rounded ${metaTitleLen > 60 ? 'text-red-500 bg-red-50 dark:bg-red-900/20' : metaTitleLen >= 50 ? 'text-green-600 bg-green-50 dark:bg-green-900/20' : 'text-gray-400 bg-gray-100 dark:bg-dark-bg'}`}>
+                                            {metaTitleLen}/60
+                                        </span>
+                                    </div>
+                                    <input
+                                        type="text"
+                                        id="meta_title"
+                                        name="meta_title"
+                                        value={formData.meta_title}
+                                        onChange={handleChange}
+                                        className="w-full bg-gray-50 dark:bg-dark-bg border border-gray-200 dark:border-dark-border rounded-xl px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 placeholder:text-gray-300 dark:placeholder:text-gray-700 focus:outline-none focus:ring-2 focus:ring-primary-500/40 transition-all"
+                                        placeholder="SEO optimized title..."
+                                    />
+                                    <p className="text-[10px] text-gray-400 mt-1">Target: 50–60 characters</p>
+                                </div>
+                                <div>
+                                    <div className="flex justify-between items-center mb-1.5">
+                                        <label htmlFor="meta_description" className="text-xs font-semibold text-gray-500 dark:text-gray-400">Meta Description</label>
+                                        <span className={`text-[10px] font-mono font-bold px-1.5 py-0.5 rounded ${metaDescLen > 160 ? 'text-red-500 bg-red-50 dark:bg-red-900/20' : metaDescLen >= 140 ? 'text-green-600 bg-green-50 dark:bg-green-900/20' : 'text-gray-400 bg-gray-100 dark:bg-dark-bg'}`}>
+                                            {metaDescLen}/160
+                                        </span>
+                                    </div>
+                                    <textarea
+                                        id="meta_description"
+                                        name="meta_description"
+                                        rows="4"
+                                        value={formData.meta_description}
+                                        onChange={handleChange}
+                                        className="w-full bg-gray-50 dark:bg-dark-bg border border-gray-200 dark:border-dark-border rounded-xl px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 placeholder:text-gray-300 dark:placeholder:text-gray-700 focus:outline-none focus:ring-2 focus:ring-primary-500/40 transition-all resize-y"
+                                        placeholder="Brief description for search engines..."
+                                    />
+                                    <p className="text-[10px] text-gray-400 mt-1">Target: 150–160 characters</p>
+                                </div>
+
+                                {/* Live Google Preview */}
+                                {(formData.meta_title || formData.meta_description) && (
+                                    <div className="p-3 bg-gray-50 dark:bg-dark-bg rounded-xl border border-gray-100 dark:border-dark-border">
+                                        <p className="text-[9px] uppercase font-black text-gray-400 tracking-widest mb-2">Google Preview</p>
+                                        <p className="text-blue-600 dark:text-blue-400 text-sm font-medium line-clamp-1">{formData.meta_title || formData.title || 'Page Title'}</p>
+                                        <p className="text-green-700 dark:text-green-500 text-[10px] my-0.5">yourblog.com › blog › slug</p>
+                                        <p className="text-gray-600 dark:text-gray-400 text-xs line-clamp-2 leading-relaxed">{formData.meta_description || 'No description provided.'}</p>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Writing Tips Card */}
+                        <div className="bg-gradient-to-br from-primary-600/10 to-primary-400/5 dark:from-primary-900/30 dark:to-transparent rounded-2xl border border-primary-100 dark:border-primary-900/40 p-5">
+                            <h4 className="text-xs font-black text-primary-700 dark:text-primary-400 uppercase tracking-widest mb-3">✨ Editing Tips</h4>
+                            <ul className="space-y-2 text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
+                                <li>• Check the <code className="bg-white/60 dark:bg-white/10 px-1 rounded text-primary-600 dark:text-primary-400">Content</code> tab length before publishing.</li>
+                                <li>• Verify the <code className="bg-white/60 dark:bg-white/10 px-1 rounded text-primary-600 dark:text-primary-400">Google Preview</code> layout below the SEO block.</li>
+                                <li>• Updating URLs/Images instantly syncs backwards.</li>
+                                <li>• Remember to hit <strong>Update Post</strong> to save changes!</li>
+                            </ul>
+                        </div>
+                    </div>
                 </div>
             </form>
         </div>
