@@ -5,6 +5,7 @@ import api from '../../services/api';
 
 const Dashboard = () => {
     const [posts, setPosts] = useState([]);
+    const [filterStatus, setFilterStatus] = useState('all');
     const [stats, setStats] = useState({
         totalPosts: 0,
         totalBlogViews: 0,
@@ -37,7 +38,7 @@ const Dashboard = () => {
     const fetchData = async () => {
         try {
             const [postsRes, statsRes] = await Promise.all([
-                api.get('/posts/admin?limit=10'),
+                api.get('/posts/admin?limit=50'),
                 api.get('/stats')
             ]);
             setPosts(postsRes.data.posts || []);
@@ -73,6 +74,19 @@ const Dashboard = () => {
             }
         }
     };
+
+    const togglePublish = async (post) => {
+        try {
+            const newStatus = post.status === 'published' ? 'draft' : 'published';
+            await api.put(`/posts/${post.id}`, { status: newStatus });
+            fetchData();
+        } catch (error) {
+            console.error('Failed to update status', error);
+            alert('Failed to update status.');
+        }
+    };
+
+    const filteredPosts = posts.filter(p => filterStatus === 'all' ? true : p.status === filterStatus);
 
     const statCards = [
         {
@@ -189,9 +203,8 @@ const Dashboard = () => {
                 ))}
             </div>
 
-            {/* Performance Table */}
             <div className="bg-white dark:bg-dark-card rounded-2xl shadow-soft border border-gray-100 dark:border-dark-border overflow-hidden">
-                <div className="px-8 py-6 border-b border-gray-100 dark:border-dark-border flex justify-between items-center bg-gray-50/30 dark:bg-dark-bg/30">
+                <div className="px-8 py-6 flex justify-between items-center bg-gray-50/30 dark:bg-dark-bg/30">
                     <div className="flex items-center gap-3">
                         <div className="p-2 bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400 rounded-lg">
                             <BarChart3 size={20} />
@@ -201,6 +214,19 @@ const Dashboard = () => {
                     <button onClick={fetchData} className="text-sm text-primary-600 hover:text-primary-700 font-bold">
                         Refresh Data
                     </button>
+                </div>
+
+                {/* Filter Tabs */}
+                <div className="flex gap-6 border-b border-gray-100 dark:border-dark-border px-8 pt-2 bg-gray-50/10 dark:bg-dark-bg/10">
+                    {['all', 'published', 'draft'].map(tab => (
+                        <button
+                            key={tab}
+                            onClick={() => setFilterStatus(tab)}
+                            className={`pb-4 text-sm font-bold capitalize transition-colors border-b-2 ${filterStatus === tab ? 'border-primary-600 text-primary-600' : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'}`}
+                        >
+                            {tab === 'all' ? 'All Posts' : `${tab}s`}
+                        </button>
+                    ))}
                 </div>
 
                 <div className="overflow-x-auto">
@@ -222,7 +248,7 @@ const Dashboard = () => {
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-100 dark:divide-dark-border">
-                                {posts.map((post) => (
+                                {filteredPosts.map((post) => (
                                     <tr key={post.id} className="hover:bg-gray-50/50 dark:hover:bg-dark-bg/30 transition-colors">
                                         <td className="px-8 py-5">
                                             <div className="flex items-center gap-4">
@@ -267,6 +293,13 @@ const Dashboard = () => {
                                         </td>
                                         <td className="px-8 py-5">
                                             <div className="flex justify-end gap-3 text-right">
+                                                <button 
+                                                    onClick={() => togglePublish(post)} 
+                                                    className={`p-2 rounded-lg transition-all ${post.status === 'published' ? 'text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20' : 'text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-900/20'}`} 
+                                                    title={post.status === 'published' ? "Unpublish to Draft" : "Publish Now"}
+                                                >
+                                                    <Globe size={18} />
+                                                </button>
                                                 <Link to={`/blog/${post.slug}`} target="_blank" className="p-2 text-gray-400 hover:text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/20 rounded-lg transition-all" title="View Live">
                                                     <Eye size={18} />
                                                 </Link>
@@ -280,7 +313,7 @@ const Dashboard = () => {
                                         </td>
                                     </tr>
                                 ))}
-                                {posts.length === 0 && (
+                                {filteredPosts.length === 0 && (
                                     <tr>
                                         <td colSpan="7" className="text-center py-16 text-gray-500 italic">No articles found. Ready to write your first story?</td>
                                     </tr>
