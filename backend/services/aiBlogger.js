@@ -73,7 +73,7 @@ Return ONLY a valid JSON object matching the exact schema (no markdown formattin
                     contents: [{ parts: [{ text: prompt }] }],
                     generationConfig: { 
                         temperature: 0.7, 
-                        maxOutputTokens: 3000,
+                        maxOutputTokens: 8192,
                         responseMimeType: "application/json",
                         responseSchema: {
                             type: "OBJECT",
@@ -88,7 +88,7 @@ Return ONLY a valid JSON object matching the exact schema (no markdown formattin
                         }
                     }
                 },
-                { headers: { 'Content-Type': 'application/json' }, timeout: 30000 }
+                { headers: { 'Content-Type': 'application/json' }, timeout: 60000 }
             );
 
             const text = response.data?.candidates?.[0]?.content?.parts?.[0]?.text;
