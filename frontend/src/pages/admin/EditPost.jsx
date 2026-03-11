@@ -65,7 +65,7 @@ const EditPost = () => {
         try {
             const config = { headers: { 'Content-Type': 'multipart/form-data' } };
             const { data } = await api.post('/upload', formDataUpload, config);
-            setFormData({ ...formData, featured_image: data.image });
+            setFormData(prev => ({ ...prev, featured_image: data.image }));
             setStatusMsg({ type: 'success', msg: 'Featured image updated' });
         } catch (error) {
             console.error(error);
@@ -222,7 +222,7 @@ const EditPost = () => {
                             <label className="btn-outline cursor-pointer">
                                 <ImageIcon size={20} className="mr-2 inline" />
                                 {uploadingImage ? 'Uploading...' : 'Change'}
-                                <input type="file" accept="image/*" className="hidden" onChange={uploadFileHandler} disabled={uploadingImage} />
+                                <input type="file" accept="image/*" className="hidden" onChange={(e) => { uploadFileHandler(e); e.target.value = null; }} disabled={uploadingImage} />
                             </label>
                         </div>
                     </div>
@@ -241,7 +241,7 @@ const EditPost = () => {
                             <label className="flex flex-col items-center justify-center border-2 border-dashed border-gray-200 dark:border-dark-border rounded-xl aspect-video cursor-pointer hover:border-primary-500 transition-colors">
                                 <Plus size={24} className="text-gray-400" />
                                 <span className="text-[10px] font-bold text-gray-400 mt-1 uppercase">Add More</span>
-                                <input type="file" multiple accept="image/*" className="hidden" onChange={uploadMultipleHandler} disabled={uploadingMultiple} />
+                                <input type="file" multiple accept="image/*" className="hidden" onChange={(e) => { uploadMultipleHandler(e); e.target.value = null; }} disabled={uploadingMultiple} />
                             </label>
                         </div>
                         {uploadingMultiple && <p className="text-xs text-primary-600 animate-pulse">Uploading...</p>}

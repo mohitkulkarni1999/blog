@@ -43,7 +43,7 @@ const CreatePost = () => {
         try {
             const config = { headers: { 'Content-Type': 'multipart/form-data' } };
             const { data } = await api.post('/upload', formDataUpload, config);
-            setFormData({ ...formData, featured_image: data.image });
+            setFormData(prev => ({ ...prev, featured_image: data.image }));
             setStatusMsg({ type: 'success', msg: 'Image uploaded successfully' });
         } catch (error) {
             console.error(error);
@@ -230,7 +230,7 @@ const CreatePost = () => {
                                             <span className="text-xs text-gray-300 dark:text-gray-700 mt-1">PNG, JPG, WEBP</span>
                                         </>
                                     )}
-                                    <input type="file" accept="image/*" className="hidden" onChange={uploadFileHandler} disabled={uploadingImage} />
+                                    <input type="file" accept="image/*" className="hidden" onChange={(e) => { uploadFileHandler(e); e.target.value = null; }} disabled={uploadingImage} />
                                 </label>
                             )}
 
@@ -280,7 +280,7 @@ const CreatePost = () => {
                                 <label className="flex flex-col items-center justify-center border-2 border-dashed border-gray-200 dark:border-dark-border rounded-xl aspect-video cursor-pointer hover:border-primary-500 dark:hover:border-primary-500 transition-colors bg-gray-50/50 dark:bg-dark-bg/50 group">
                                     <Plus size={20} className="text-gray-300 dark:text-gray-700 group-hover:text-primary-500 transition-colors" />
                                     <span className="text-[10px] font-bold text-gray-400 group-hover:text-primary-500 transition-colors mt-1 uppercase tracking-widest">Add More</span>
-                                    <input type="file" multiple accept="image/*" className="hidden" onChange={uploadMultipleHandler} disabled={uploadingMultiple} />
+                                    <input type="file" multiple accept="image/*" className="hidden" onChange={(e) => { uploadMultipleHandler(e); e.target.value = null; }} disabled={uploadingMultiple} />
                                 </label>
                             </div>
                         </div>
