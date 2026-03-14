@@ -39,13 +39,13 @@ async function generateBlogFromNews(article) {
 Your assignment is to write a highly detailed, deeply researched, and authoritative article based purely on the breaking news provided below.
 
 🚨 STRICT SEO & LONG-FORM REQUIREMENTS 🚨: 
-- You MUST write an absolute minimum of 1,200 to 1,500 words.
+- You MUST write an absolute minimum of 1,200 to 1,500 words. DO NOT STOP EARLY.
 - Use the "Inverted Pyramid" structure. The very first 100 words MUST directly and concisely answer the core question of the headline to capture the Google Featured Snippet.
-- The article MUST contain at least 15 robust paragraphs of text.
+- The article MUST contain at least 15 robust paragraphs of text. DO NOT SUMMARIZE. Write detailed, verbose, eloquent paragraphs.
 - Use at least 5 distinct <h2> subheadings. ALL <h2> subheadings MUST be formatted as questions that users search for on Google (e.g., "How Does This Impact the Market?", "Why Is This Technology Important?").
 - Include at least one <h3> section that is a granular, bulleted listicle detailing key facts or timelines.
 - Provide rich semantic HTML formatting natively inside the text: heavy use of <strong> for keywords, <em> for emphasis, and at least two stylized <blockquote> blocks representing "industry expert" or "analyst" commentary.
-- Do not repeat yourself to reach the word count; invent plausible, highly professional analytical commentary, industry reactions, and detailed hypotheticals.
+- Do not repeat yourself to reach the word count; invent plausible, highly professional analytical commentary, industry reactions, and detailed hypotheticals to expand the context. Ensure the article is finished with a proper concluding section. DO NOT cutting off mid-sentence.
 
 NEWS HEADLINE: "${article.title}"
 NEWS DESCRIPTION: "${article.description}"
@@ -54,21 +54,24 @@ CURRENT DATE: ${new Date().toDateString()}
 Return ONLY a valid JSON object matching the exact schema (no markdown formatting blocks, just raw JSON text) with these fields:
 {
   "title": "A highly engaging, click-worthy SEO optimized H1 title that includes a Hook (under 75 chars)",
-  "content": "Full HTML blog post fitting all the massive structural requirements above. Do NOT wrap it in a markdown code block.",
+  "content": "Full HTML blog post fitting all the massive structural requirements above. Validate that this HTML strings ends cleanly and does not cut off.",
   "meta_title": "SEO meta title under 60 characters",
   "meta_description": "SEO meta description highly optimized for click-through rate, under 160 characters",
   "category_suggestion": "Technology, Business, Markets, World, or Science"
 }`;
 
+    // SWITCHED TO GEMINI PRO for long-form reasoning and avoiding output truncation
+    const PRO_MODEL_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent';
+
     const MAX_RETRIES = 3;
     for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
         try {
             const response = await axios.post(
-                `${GEMINI_API_URL}?key=${process.env.GEMINI_API_KEY}`,
+                `${PRO_MODEL_URL}?key=${process.env.GEMINI_API_KEY}`,
                 {
                     contents: [{ parts: [{ text: prompt }] }],
                     generationConfig: { 
-                        temperature: 0.7, 
+                        temperature: 0.8, 
                         maxOutputTokens: 8192,
                         responseMimeType: "application/json",
                         responseSchema: {
@@ -84,7 +87,7 @@ Return ONLY a valid JSON object matching the exact schema (no markdown formattin
                         }
                     }
                 },
-                { headers: { 'Content-Type': 'application/json' }, timeout: 60000 }
+                { headers: { 'Content-Type': 'application/json' }, timeout: 120000 }
             );
 
             const text = response.data?.candidates?.[0]?.content?.parts?.[0]?.text;
