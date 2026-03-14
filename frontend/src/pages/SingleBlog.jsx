@@ -100,6 +100,16 @@ const SingleBlog = () => {
 
     const cleanContent = post?.content ? DOMPurify.sanitize(post.content) : '';
 
+    // ── Optimize Cloudinary URLs for Core Web Vitals ───────────────────────
+    const optimizeImgUrl = (url) => {
+        if (!url) return 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?auto=format&fit=crop&q=80';
+        if (url.includes('cloudinary.com') && !url.includes('upload/q_auto,f_auto,w_1200,c_fill')) {
+            return url.replace('/upload/', '/upload/q_auto,f_auto,w_1200,c_fill/');
+        }
+        return url;
+    };
+    const optimizedImage = optimizeImgUrl(post?.featured_image);
+
     // ── Inject JSON-LD structured data for SEO ───────────────────────────────
     useEffect(() => {
         if (!post) return;
@@ -108,7 +118,7 @@ const SingleBlog = () => {
             '@type': 'NewsArticle',
             'headline': post.title,
             'description': post.meta_description || post.title,
-            'image': post.featured_image ? [post.featured_image] : [],
+            'image': [optimizedImage],
             'datePublished': post.created_at,
             'dateModified': post.updated_at || post.created_at,
             'author': {
@@ -250,7 +260,7 @@ const SingleBlog = () => {
                 <div className="max-w-5xl mx-auto">
                     <div className="relative overflow-hidden rounded-2xl md:rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.5)] md:shadow-[0_40px_100px_rgba(0,0,0,0.5)] bg-gray-900 border border-white/5">
                         <img
-                            src={post.featured_image || 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?auto=format&fit=crop&q=80'}
+                            src={optimizedImage}
                             className="w-full h-auto max-h-[750px] object-contain mx-auto block"
                             alt={post.title}
                         />

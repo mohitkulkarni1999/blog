@@ -1,4 +1,5 @@
 const express = require('express');
+const compression = require('compression');
 const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
@@ -9,6 +10,9 @@ const path = require('path');
 dotenv.config();
 
 const app = express();
+
+// Enable Gzip/Brotli compression for all requests
+app.use(compression());
 
 // Trust proxy for Render/Cloud platforms
 app.set('trust proxy', 1);

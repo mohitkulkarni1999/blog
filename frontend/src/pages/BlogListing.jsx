@@ -24,17 +24,26 @@ const BlogListing = () => {
     const fetchPosts = async () => {
         setLoading(true);
         try {
-            const { data } = await api.get(`/posts?page=${page}&limit=10&search=${search}&category=${category}`);
-            setPosts(data.posts || []);
-            setPages(data.pages || 1);
+            // Parallelize initial data fetch for speed
+            const promises = [
+                api.get(`/posts?page=${page}&limit=10&search=${search}&category=${category}`)
+            ];
 
+            if (featuredPosts.length === 0) promises.push(api.get('/posts?limit=5'));
+            if (categories.length === 0) promises.push(api.get('/categories'));
+
+            const results = await Promise.all(promises);
+
+            setPosts(results[0].data.posts || []);
+            setPages(results[0].data.pages || 1);
+
+            let resIdx = 1;
             if (featuredPosts.length === 0) {
-                const featRes = await api.get('/posts?limit=5');
-                setFeaturedPosts(featRes.data.posts || []);
+                setFeaturedPosts(results[resIdx].data.posts || []);
+                resIdx++;
             }
             if (categories.length === 0) {
-                const catRes = await api.get('/categories');
-                setCategories(catRes.data || []);
+                setCategories(results[resIdx].data || []);
             }
         } catch (error) {
             console.error('Failed to fetch posts', error);
