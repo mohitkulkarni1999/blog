@@ -61,7 +61,7 @@ Return ONLY a valid JSON object matching the exact schema (no markdown formattin
 }`;
 
     // SWITCHED TO GEMINI PRO for long-form reasoning and avoiding output truncation
-    const PRO_MODEL_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent';
+    const PRO_MODEL_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro-latest:generateContent';
 
     const MAX_RETRIES = 3;
     for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
