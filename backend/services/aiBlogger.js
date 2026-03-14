@@ -2,7 +2,7 @@ const axios = require('axios');
 const slugify = require('slugify');
 const pool = require('../config/db');
 
-const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent';
+const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent';
 
 // ─── Fetch top news headlines ─────────────────────────────────────────────────
 async function fetchTopNews(count = 2) {
@@ -60,8 +60,8 @@ Return ONLY a valid JSON object matching the exact schema (no markdown formattin
   "category_suggestion": "Technology, Business, Markets, World, or Science"
 }`;
 
-    // Use gemini-2.0-flash-lite for higher quota and stability
-    const MODEL_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent';
+    // Use gemini-1.5-flash-latest for maximum stability and quota
+    const MODEL_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent';
 
     const MAX_RETRIES = 3;
     const maskedKey = process.env.GEMINI_API_KEY ? `${process.env.GEMINI_API_KEY.substring(0, 8)}...` : 'MISSING';
@@ -107,7 +107,10 @@ Return ONLY a valid JSON object matching the exact schema (no markdown formattin
 
         } catch (error) {
             const status = error.response?.status;
-            const errMsg = error.response?.data?.error?.message || error.message;
+            const data = error.response?.data;
+            const errMsg = data?.error?.message || error.message;
+
+            console.error(`[AI Blogger] Gemini Error (${status}):`, JSON.stringify(data, null, 2));
 
             if (status === 401 || status === 403) {
                 console.error('[AI Blogger] ❌ Invalid Gemini API key — update GEMINI_API_KEY in Render env vars');
