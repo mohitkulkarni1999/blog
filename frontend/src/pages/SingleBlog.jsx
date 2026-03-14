@@ -5,7 +5,7 @@ import api from '../services/api';
 import parse from 'html-react-parser';
 import DOMPurify from 'dompurify';
 import { useAuth } from '../hooks/useAuth';
-import { RelatedPostsGrid } from '../components/BlogWidgets';
+import { RelatedPostsGrid, AuthorProfile } from '../components/BlogWidgets';
 
 const SingleBlog = () => {
     const { slug } = useParams();
