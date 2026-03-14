@@ -86,7 +86,12 @@ async function fetchNewsAPI() {
         });
         return (res.data.articles || [])
             .filter(a => a.title && a.description && !a.title.includes('[Removed]'))
-            .map(a => ({ title: a.title, description: a.description, source: `NewsAPI (${randomCat})` }));
+            .map(a => ({ 
+                title: a.title, 
+                description: a.description, 
+                source: `NewsAPI (${randomCat})`,
+                publishedAt: a.publishedAt 
+            }));
     } catch (err) { 
         console.error('[AI Blogger] NewsAPI Fetch Error:', err.message);
         return []; 
@@ -123,7 +128,8 @@ async function fetchRedditTech() {
             .map(child => ({
                 title: child.data.title,
                 description: child.data.selftext ? child.data.selftext.substring(0, 300) : `Trending community discussion: ${child.data.title}`,
-                source: 'Reddit/r/technology'
+                source: 'Reddit/r/technology',
+                publishedAt: new Date(child.data.created_utc * 1000).toISOString()
             }));
     } catch { return []; }
 }
@@ -131,13 +137,16 @@ async function fetchRedditTech() {
 async function fetchGoogleTrends() {
     try {
         const res = await axios.get('https://trends.google.com/trends/trendingsearches/daily/rss?geo=US');
-        const items = res.data.match(/<title>(.*?)<\/title>/g) || [];
-        return items.slice(2, 5).map(t => {
-            const title = t.replace(/<\/?title>/g, '');
+        const items = res.data.match(/<item>([\s\S]*?)<\/item>/g) || [];
+        return items.slice(0, 5).map(item => {
+            const title = item.match(/<title>(.*?)<\/title>/)?.[1] || 'Trending Now';
+            const description = item.match(/<description>([\s\S]*?)<\/description>/)?.[1] || '';
+            const pubDate = item.match(/<pubDate>(.*?)<\/pubDate>/)?.[1] || '';
             return {
-                title: `${title} - Trending Latest`,
-                description: `Global trending topic: ${title}. High volume search intent detected.`,
-                source: 'GoogleTrends'
+                title: `${title} - LATEST TREND`,
+                description: description.replace(/<!\[CDATA\[|\]\]>/g, ''),
+                source: 'GoogleTrends (Live)',
+                publishedAt: pubDate
             };
         });
     } catch { return []; }
@@ -152,8 +161,12 @@ async function fetchTopNews(count = 2) {
         fetchGoogleTrends()
     ]);
     const news = results.flat();
-    console.log(`[AI Blogger] 🕵️ Found ${news.length} potential signals. Selecting top ${count}...`);
-    return news.sort(() => 0.5 - Math.random()).slice(0, count);
+    const sortedNews = news.sort((a, b) => {
+        const dateA = new Date(a.publishedAt || 0);
+        const dateB = new Date(b.publishedAt || 0);
+        return dateB - dateA;
+    });
+    return sortedNews.slice(0, count);
 }
 
 // ─── AI CORE ──────────────────────────────────────────────────────────────────
@@ -161,28 +174,30 @@ async function fetchTopNews(count = 2) {
 async function generateBlogFromNews(article, isRefresh = false, existingContent = '') {
     const internalLinks = await getInternalLinks();
     
-    const prompt = `You are a Lead Investigative Reporter at The Verge. 
-    ${isRefresh ? 'REFRESH TASK: Update this existing article with latest 2026 developments.' : 'NEW ARTICLE TASK: Write a massive, viral, 600-900 word tech news feature based on LATEST BREAKING NEWS.'}
+    const currentDate = "March 15, 2026";
+    const prompt = `You are the Editor-in-Chief at The Verge, writing live on ${currentDate}.
+    ${isRefresh ? 'REFRESH TASK: Update this existing article for the 2026 audience.' : 'NEW ARTICLE TASK: Write a massive, viral, 800-1200 word BREAKING NEWS editorial.'}
 
-    🚨 NEWS SIGNAL DATA (INCORPORATE THESE FACTS):
+    🚨 LIVE NEWS SIGNAL (CORE SOURCE - USE THESE FACTS):
     NEWS TITLE: "${article.title}"
-    NEWS CONTEXT/FACTS: "${article.description}"
+    NEWS CONTEXT: "${article.description}"
+    PUBLISHED ON: ${article.publishedAt || currentDate}
     SOURCE CHANNEL: ${article.source}
 
     INTERNAL LINKS TO INJECT: ${internalLinks}
     ${isRefresh ? `EXISTING CONTENT: ${existingContent.substring(0, 2000)}...` : ''}
 
-    STRICT EDITORIAL REQUIREMENTS:
-    1. LATEST NEWS FOCUS: This is NOT an evergreen piece. It is a BREAKING NEWS analysis. Stay current.
-    2. HEADLINE: Strong, emotional, Google Discover optimized.
-    3. STRUCTURE: 600-900 words. Inverted pyramid intro answering Who/What/Where/When in the first 100 words.
-    4. KEY TAKEAWAYS: A summary block with 4-5 high-impact bullets immediately after the intro.
-    5. SECTIONS: Minimum 5 <h2> headings as consumer search queries. 1 detailed <h3> list of granular facts.
-    6. ENGAGEMENT: Use 2-3 stylized blockquotes representing industry analysis. Use bolding for key terms.
-    7. SEO: Provide Meta Title, Meta Description, Focus Keywords (3-5), and Tags (5-8).
-    8. CLUSTERING: Categorize as: [AI, Technology, Gaming, Startups, Business, Science, Markets].
-    9. IMAGE: Provide a cinematic, detailed featured_image_prompt.
-    10. LINKS: Naturally embed the provided internal links using <a href="/blog/slug">text</a>.
+    STRICT EDITORIAL DIRECTIVES:
+    1. EXCLUSIVE LATEST FOCUS: This is NOT an encyclopedia entry. This is a Breaking News analysis. 
+    2. FACTUAL GROUNDING: Use the specific facts from the LIVE NEWS SIGNAL. Do not write about generic concepts. If the signal says "NVIDIA released X", focus on "X".
+    3. 2026 PERSPECTIVE: Every sentence must reflect the world of MARCH 2026. 
+    4. HEADLINE: High-impact, "Hot Take" style headlines that drive clicks.
+    5. STRUCTURE: 1200-1800 words. Inverted pyramid style (Hard news lead).
+    6. KEY TAKEAWAYS: High-impact bullet points immediately after the intro.
+    7. ANALYSIS: Go deep into the "What happens next?" for this specific news event.
+    8. QUOTES: Stylized investigative blockquotes.
+    9. SEO: Focus Keywords and unique Meta tags.
+    10. LINKS: Naturally embed provided <a href="/blog/slug">links</a>.
 
     Return JSON:
     {
@@ -322,13 +337,16 @@ async function runAIBlogger(count = 1) {
         const [admin] = await pool.query("SELECT id FROM users WHERE role = 'admin' LIMIT 1");
         const authorId = admin[0]?.id || 1;
 
+        const [allCats] = await pool.query('SELECT id FROM categories LIMIT 1');
+        const fallbackId = allCats[0]?.id || 1;
+
         let generated = 0;
         for (const article of news) {
             const data = await generateBlogFromNews(article);
             if (!data) continue;
 
             const [cat] = await pool.query('SELECT id FROM categories WHERE name = ?', [data.topic_cluster || 'Technology']);
-            const categoryId = cat[0]?.id || 1;
+            const categoryId = cat[0]?.id || fallbackId;
 
             const result = await saveDraftPost(data, authorId, categoryId);
             if (result) generated++;
