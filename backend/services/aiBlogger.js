@@ -86,15 +86,15 @@ async function fetchNewsAPI() {
         });
         return (res.data.articles || [])
             .filter(a => a.title && a.description && !a.title.includes('[Removed]'))
-            .map(a => ({ 
-                title: a.title, 
-                description: a.description, 
+            .map(a => ({
+                title: a.title,
+                description: a.description,
                 source: `NewsAPI (${randomCat})`,
-                publishedAt: a.publishedAt 
+                publishedAt: a.publishedAt
             }));
-    } catch (err) { 
+    } catch (err) {
         console.error('[AI Blogger] NewsAPI Fetch Error:', err.message);
-        return []; 
+        return [];
     }
 }
 
@@ -105,10 +105,10 @@ async function fetchHackerNews() {
         for (const id of topIds.slice(0, 10)) {
             const { data: item } = await axios.get(`https://hacker-news.firebaseio.com/v0/item/${id}.json`);
             if (item && item.title && (item.url || item.text)) {
-                articles.push({ 
-                    title: item.title, 
-                    description: item.text ? item.text.substring(0, 300) : `Deep tech discussion on ${item.title}`, 
-                    source: 'HackerNews' 
+                articles.push({
+                    title: item.title,
+                    description: item.text ? item.text.substring(0, 300) : `Deep tech discussion on ${item.title}`,
+                    source: 'HackerNews'
                 });
             }
             if (articles.length >= 3) break;
@@ -173,31 +173,35 @@ async function fetchTopNews(count = 2) {
 
 async function generateBlogFromNews(article, isRefresh = false, existingContent = '') {
     const internalLinks = await getInternalLinks();
-    
-    const currentDate = "March 15, 2026";
-    const prompt = `You are the Editor-in-Chief at The Verge, writing live on ${currentDate}.
-    ${isRefresh ? 'REFRESH TASK: Update this existing article for the 2026 audience.' : 'NEW ARTICLE TASK: Write a massive, viral, 800-1200 word BREAKING NEWS editorial.'}
+    const currentDate = new Date().toLocaleDateString('en-US', { 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric' 
+    });
 
-    🚨 LIVE NEWS SIGNAL (CORE SOURCE - USE THESE FACTS):
-    NEWS TITLE: "${article.title}"
-    NEWS CONTEXT: "${article.description}"
-    PUBLISHED ON: ${article.publishedAt || currentDate}
-    SOURCE CHANNEL: ${article.source}
+    const prompt = `You are the Lead Editorial Reporter at Wired, writing live on ${currentDate}.
+    ${isRefresh ? 'REFRESH TASK: Update this existing article to include developments up to today.' : 'NEW ARTICLE TASK: Write a massive, viral, 1200-1800 word BREAKING NEWS investigative report.'}
 
-    INTERNAL LINKS TO INJECT: ${internalLinks}
+    🚨 LIVE NEWS SIGNAL (USE THESE FACTS AS THE CORE DATA):
+    HEADLINE: "${article.title}"
+    CONTEXT/DATA: "${article.description}"
+    TIMESTAMP: ${article.publishedAt || currentDate}
+    CHANNEL: ${article.source}
+
+    INTERNAL LINKS: ${internalLinks}
     ${isRefresh ? `EXISTING CONTENT: ${existingContent.substring(0, 2000)}...` : ''}
 
-    STRICT EDITORIAL DIRECTIVES:
-    1. EXCLUSIVE LATEST FOCUS: This is NOT an encyclopedia entry. This is a Breaking News analysis. 
-    2. FACTUAL GROUNDING: Use the specific facts from the LIVE NEWS SIGNAL. Do not write about generic concepts. If the signal says "NVIDIA released X", focus on "X".
-    3. 2026 PERSPECTIVE: Every sentence must reflect the world of MARCH 2026. 
-    4. HEADLINE: High-impact, "Hot Take" style headlines that drive clicks.
-    5. STRUCTURE: 1200-1800 words. Inverted pyramid style (Hard news lead).
-    6. KEY TAKEAWAYS: High-impact bullet points immediately after the intro.
-    7. ANALYSIS: Go deep into the "What happens next?" for this specific news event.
-    8. QUOTES: Stylized investigative blockquotes.
-    9. SEO: Focus Keywords and unique Meta tags.
-    10. LINKS: Naturally embed provided <a href="/blog/slug">links</a>.
+    STRICT EDITORIAL REQUIREMENTS:
+    1. EXCLUSIVE RELIANCE ON LIVE DATA: Use the signals provided above to drive a narrative about what is happening RIGHT NOW.
+    2. DEPTH & LENGTH: 1200-1800 words. Provide technical details, market analysis, and global implications.
+    3. PERSPECTIVE: Tech-literate, aggressive, and insightful. No generic summaries.
+    4. HEADLINE: High-impact, click-worthy hot takes (e.g., "The NVIDIA Revelation That Changes Everything").
+    5. STRUCTURE: Professional news layout. Inverted pyramid intro answering Who/What/Where/When in the first 100 words.
+    6. KEY TAKEAWAYS: 5 high-impact bullets immediately after the intro.
+    7. SUBHEADINGS: Use at least 7-8 <h2> headings as search queries.
+    8. QUOTES: Include 3 detailed expert analysis blocks (stylized as <blockquote>).
+    9. SEO: Meta tags, Focus Keywords (5+), and 5-8 Tags.
+    10. LINKS: Naturally embed <a href="/blog/slug">links</a>.
 
     Return JSON:
     {
@@ -212,34 +216,35 @@ async function generateBlogFromNews(article, isRefresh = false, existingContent 
     }`;
 
     const MAX_RETRIES = 3;
-    console.log('[AI Blogger] ⏳ Preparing AI engine (pre-fetch delay)...');
-    await new Promise(r => setTimeout(r, 5000));
+    console.log('[AI Blogger] ⏳ Cooling down for fresh session...');
+    await new Promise(r => setTimeout(r, 10000));
+
     for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
         try {
             console.log(`[AI Blogger] 🤖 Contacting Gemini SDK (${GEMINI_MODEL}) - Attempt ${attempt}...`);
-            const model = genAI.getGenerativeModel({ 
+            const model = genAI.getGenerativeModel({
                 model: GEMINI_MODEL,
-                generationConfig: { 
+                generationConfig: {
                     responseMimeType: "application/json",
                     temperature: 0.8,
-                    maxOutputTokens: 3072
+                    maxOutputTokens: 6144
                 }
             });
 
             const result = await model.generateContent(prompt);
             const response = await result.response;
             const text = response.text();
-            
+
             if (!text) throw new Error('Empty response from Gemini SDK');
-            
+
             return JSON.parse(text);
         } catch (err) {
             const status = err.response?.status || err.status;
             console.error(`[AI Blogger] Gemini Error (Attempt ${attempt}):`, status || err.message);
 
             if (status === 429 || err.message.includes('429')) {
-                const waitTime = attempt * 45000;
-                console.warn(`[AI Blogger] ⏳ Rate limited. Waiting ${waitTime/1000}s...`);
+                const waitTime = attempt * 60000;
+                console.warn(`[AI Blogger] ⏳ Rate limited. Waiting ${waitTime / 1000}s...`);
                 await new Promise(r => setTimeout(r, waitTime));
             } else if (attempt === MAX_RETRIES) {
                 console.error('[AI Blogger] ❌ Max retries reached.');
@@ -289,7 +294,7 @@ async function saveDraftPost(data, authorId, categoryId) {
              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'draft')`,
             [
                 data.title, slug, data.content, categoryId, data.topic_cluster,
-                authorId, data.meta_title, data.meta_description, 
+                authorId, data.meta_title, data.meta_description,
                 JSON.stringify(data.focus_keywords), imgUrl, data.featured_image_prompt
             ]
         );
@@ -318,7 +323,7 @@ async function refreshOldContent() {
 
         console.log(`[AI Blogger] 🧬 Refreshing Legacy Content: "${posts[0].title}"`);
         const updatedData = await generateBlogFromNews({ title: posts[0].title, description: 'Updating for content freshness' }, true, posts[0].content);
-        
+
         if (updatedData) {
             await pool.query('UPDATE posts SET content = ?, updated_at = NOW() WHERE id = ?', [updatedData.content, posts[0].id]);
             console.log(`[AI Blogger] ✅ Content Freshness Injection successful for ${posts[0].slug}`);
