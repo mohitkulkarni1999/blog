@@ -1,10 +1,11 @@
 const axios = require('axios');
 const slugify = require('slugify');
 const pool = require('../config/db');
-
 const { GoogleGenerativeAI } = require('@google/generative-ai');
+
+// ─── CONFIGURATION & MODELS ──────────────────────────────────────────────────
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-const GEMINI_MODEL = 'gemini-2.5-flash';
+const GEMINI_MODEL = 'gemini-flash-lite-latest';
 
 // ─── UTILITIES & HELPERS ─────────────────────────────────────────────────────
 
@@ -54,9 +55,6 @@ async function generateFeaturedImage(prompt) {
                 },
             }
         );
-
-        // This would return base64, usually we'd upload to Cloudinary
-        // For brevity in this script, we'll return a placeholder if not fully integrated with Cloudinary upload
         return "https://images.unsplash.com/photo-1620712943543-bcc4628c9757?auto=format&fit=crop&q=80&w=1200";
     } catch (err) {
         console.error('[AI Blogger] Image Gen Failed:', err.message);
@@ -75,8 +73,6 @@ async function getInternalLinks() {
         return '';
     }
 }
-
-// ─── NEWS SIGNAL FETCHERS ────────────────────────────────────────────────────
 
 // ─── NEWS SIGNAL FETCHERS ────────────────────────────────────────────────────
 
@@ -166,7 +162,7 @@ async function generateBlogFromNews(article, isRefresh = false, existingContent 
     const internalLinks = await getInternalLinks();
     
     const prompt = `You are a Lead Investigative Reporter at The Verge. 
-    ${isRefresh ? 'REFRESH TASK: Update this existing article with latest 2026 developments and better flow.' : 'NEW ARTICLE TASK: Write a massive, viral, 1,500-word tech news feature based on LATEST BREAKING NEWS.'}
+    ${isRefresh ? 'REFRESH TASK: Update this existing article with latest 2026 developments.' : 'NEW ARTICLE TASK: Write a massive, viral, 600-900 word tech news feature based on LATEST BREAKING NEWS.'}
 
     🚨 NEWS SIGNAL DATA (INCORPORATE THESE FACTS):
     NEWS TITLE: "${article.title}"
@@ -178,8 +174,8 @@ async function generateBlogFromNews(article, isRefresh = false, existingContent 
 
     STRICT EDITORIAL REQUIREMENTS:
     1. LATEST NEWS FOCUS: This is NOT an evergreen piece. It is a BREAKING NEWS analysis. Stay current.
-    2. HEADLINE: Strong, emotional, Google Discover optimized (e.g., "The NVIDIA Revelation That Changes Everything").
-    3. STRUCTURE: 1200-1800 words. Inverted pyramid intro answering Who/What/Where/When in the first 100 words.
+    2. HEADLINE: Strong, emotional, Google Discover optimized.
+    3. STRUCTURE: 600-900 words. Inverted pyramid intro answering Who/What/Where/When in the first 100 words.
     4. KEY TAKEAWAYS: A summary block with 4-5 high-impact bullets immediately after the intro.
     5. SECTIONS: Minimum 5 <h2> headings as consumer search queries. 1 detailed <h3> list of granular facts.
     6. ENGAGEMENT: Use 2-3 stylized blockquotes representing industry analysis. Use bolding for key terms.
@@ -201,6 +197,8 @@ async function generateBlogFromNews(article, isRefresh = false, existingContent 
     }`;
 
     const MAX_RETRIES = 3;
+    console.log('[AI Blogger] ⏳ Preparing AI engine (pre-fetch delay)...');
+    await new Promise(r => setTimeout(r, 5000));
     for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
         try {
             console.log(`[AI Blogger] 🤖 Contacting Gemini SDK (${GEMINI_MODEL}) - Attempt ${attempt}...`);
@@ -208,7 +206,8 @@ async function generateBlogFromNews(article, isRefresh = false, existingContent 
                 model: GEMINI_MODEL,
                 generationConfig: { 
                     responseMimeType: "application/json",
-                    temperature: 0.8
+                    temperature: 0.8,
+                    maxOutputTokens: 3072
                 }
             });
 
@@ -258,7 +257,6 @@ async function handleTags(postId, tags) {
 
 async function saveDraftPost(data, authorId, categoryId) {
     try {
-        // 1. ADVANCED DUPLICATE CHECK
         const [recentPosts] = await pool.query('SELECT title, slug FROM posts ORDER BY created_at DESC LIMIT 50');
         for (const p of recentPosts) {
             if (compareSimilarity(data.title, p.title) > 0.85) {
@@ -290,12 +288,9 @@ async function saveDraftPost(data, authorId, categoryId) {
     }
 }
 
-// ─── FRESHNESS UPDATER ────────────────────────────────────────────────────────
-
 async function refreshOldContent() {
     console.log('[AI Blogger] 🔄 Scanning for content freshness updates...');
     try {
-        // Find posts older than 48 hours that haven't been updated recently
         const [posts] = await pool.query(`
             SELECT id, title, content, slug FROM posts 
             WHERE status = 'published' 
@@ -317,8 +312,6 @@ async function refreshOldContent() {
         console.error('[AI Blogger] Refresh Failed:', err.message);
     }
 }
-
-// ─── RUNNER ───────────────────────────────────────────────────────────────────
 
 async function runAIBlogger(count = 1) {
     const start = Date.now();
@@ -343,9 +336,7 @@ async function runAIBlogger(count = 1) {
             if (news.indexOf(article) < news.length - 1) await new Promise(r => setTimeout(r, 60000));
         }
 
-        // Run freshness update after main loop
         await refreshOldContent();
-
         console.log(`[AI Blogger] ✅ PIPELINE COMPLETE. ${generated} Articles created in ${(Date.now() - start) / 1000}s`);
         return { success: true, generated };
     } catch (err) {
@@ -355,5 +346,3 @@ async function runAIBlogger(count = 1) {
 }
 
 module.exports = { runAIBlogger };
-
-
