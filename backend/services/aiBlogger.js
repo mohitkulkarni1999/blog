@@ -2,7 +2,7 @@ const axios = require('axios');
 const slugify = require('slugify');
 const pool = require('../config/db');
 
-const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent';
+const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent';
 
 // ─── Fetch top news headlines ─────────────────────────────────────────────────
 async function fetchTopNews(count = 2) {
@@ -60,10 +60,13 @@ Return ONLY a valid JSON object matching the exact schema (no markdown formattin
   "category_suggestion": "Technology, Business, Markets, World, or Science"
 }`;
 
-    // Use gemini-2.0-flash which is available and supports JSON schema
-    const MODEL_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent';
+    // Use gemini-2.0-flash-lite for higher quota and stability
+    const MODEL_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent';
 
     const MAX_RETRIES = 3;
+    const maskedKey = process.env.GEMINI_API_KEY ? `${process.env.GEMINI_API_KEY.substring(0, 8)}...` : 'MISSING';
+    console.log(`[AI Blogger] 🔑 Using API Key starting with: ${maskedKey}`);
+    
     for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
         try {
             const response = await axios.post(
@@ -220,7 +223,7 @@ async function runAIBlogger(postsToGenerate = 2) {
 
         // Small delay between Gemini calls to avoid rate limiting
         if (news.indexOf(article) < news.length - 1) {
-            await new Promise(resolve => setTimeout(resolve, 3000));
+            await new Promise(resolve => setTimeout(resolve, 15000));
         }
     }
 
