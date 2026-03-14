@@ -2,9 +2,9 @@ const axios = require('axios');
 const slugify = require('slugify');
 const pool = require('../config/db');
 
-// ─── CONFIGURATION & MODELS ──────────────────────────────────────────────────
+const { GoogleGenerativeAI } = require('@google/generative-ai');
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 const GEMINI_MODEL = 'gemini-2.5-flash';
-const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
 
 // ─── UTILITIES & HELPERS ─────────────────────────────────────────────────────
 
@@ -78,31 +78,85 @@ async function getInternalLinks() {
 
 // ─── NEWS SIGNAL FETCHERS ────────────────────────────────────────────────────
 
+// ─── NEWS SIGNAL FETCHERS ────────────────────────────────────────────────────
+
 async function fetchNewsAPI() {
     try {
+        const categories = ['technology', 'business', 'science', 'gaming'];
+        const randomCat = categories[Math.floor(Math.random() * categories.length)];
         const res = await axios.get('https://newsapi.org/v2/top-headlines', {
-            params: { language: 'en', category: 'technology', apiKey: process.env.NEWS_API_KEY },
-            timeout: 8000
+            params: { language: 'en', category: randomCat, apiKey: process.env.NEWS_API_KEY, pageSize: 10 },
+            timeout: 10000
         });
-        return (res.data.articles || []).slice(0, 3).map(a => ({ title: a.title, description: a.description, source: 'NewsAPI' }));
-    } catch { return []; }
+        return (res.data.articles || [])
+            .filter(a => a.title && a.description && !a.title.includes('[Removed]'))
+            .map(a => ({ title: a.title, description: a.description, source: `NewsAPI (${randomCat})` }));
+    } catch (err) { 
+        console.error('[AI Blogger] NewsAPI Fetch Error:', err.message);
+        return []; 
+    }
 }
 
 async function fetchHackerNews() {
     try {
         const { data: topIds } = await axios.get('https://hacker-news.firebaseio.com/v0/topstories.json');
         const articles = [];
-        for (const id of topIds.slice(0, 5)) {
+        for (const id of topIds.slice(0, 10)) {
             const { data: item } = await axios.get(`https://hacker-news.firebaseio.com/v0/item/${id}.json`);
-            if (item && item.title) articles.push({ title: item.title, description: item.text || item.title, source: 'HackerNews' });
+            if (item && item.title && (item.url || item.text)) {
+                articles.push({ 
+                    title: item.title, 
+                    description: item.text ? item.text.substring(0, 300) : `Deep tech discussion on ${item.title}`, 
+                    source: 'HackerNews' 
+                });
+            }
+            if (articles.length >= 3) break;
         }
         return articles;
     } catch { return []; }
 }
 
+async function fetchRedditTech() {
+    try {
+        const res = await axios.get('https://www.reddit.com/r/technology/hot.json?limit=10', {
+            headers: { 'User-Agent': 'DailyUpdatesHub/1.5' }
+        });
+        return res.data.data.children
+            .filter(child => !child.data.stickied && child.data.title)
+            .slice(0, 3)
+            .map(child => ({
+                title: child.data.title,
+                description: child.data.selftext ? child.data.selftext.substring(0, 300) : `Trending community discussion: ${child.data.title}`,
+                source: 'Reddit/r/technology'
+            }));
+    } catch { return []; }
+}
+
+async function fetchGoogleTrends() {
+    try {
+        const res = await axios.get('https://trends.google.com/trends/trendingsearches/daily/rss?geo=US');
+        const items = res.data.match(/<title>(.*?)<\/title>/g) || [];
+        return items.slice(2, 5).map(t => {
+            const title = t.replace(/<\/?title>/g, '');
+            return {
+                title: `${title} - Trending Latest`,
+                description: `Global trending topic: ${title}. High volume search intent detected.`,
+                source: 'GoogleTrends'
+            };
+        });
+    } catch { return []; }
+}
+
 async function fetchTopNews(count = 2) {
-    console.log('[AI Blogger] 📡 Scouring the web for high-signal topics...');
-    const news = [...(await fetchNewsAPI()), ...(await fetchHackerNews())];
+    console.log('[AI Blogger] 📡 Scouring the web for the absolute latest trending news...');
+    const results = await Promise.all([
+        fetchNewsAPI(),
+        fetchHackerNews(),
+        fetchRedditTech(),
+        fetchGoogleTrends()
+    ]);
+    const news = results.flat();
+    console.log(`[AI Blogger] 🕵️ Found ${news.length} potential signals. Selecting top ${count}...`);
     return news.sort(() => 0.5 - Math.random()).slice(0, count);
 }
 
@@ -111,22 +165,28 @@ async function fetchTopNews(count = 2) {
 async function generateBlogFromNews(article, isRefresh = false, existingContent = '') {
     const internalLinks = await getInternalLinks();
     
-    const prompt = `You are a Senior Editorial Architect at The Verge. 
-    ${isRefresh ? 'REFRESH TASK: Update this existing article with latest 2026 developments and better flow.' : 'NEW ARTICLE TASK: Write a viral, 1,500-word tech feature.'}
+    const prompt = `You are a Lead Investigative Reporter at The Verge. 
+    ${isRefresh ? 'REFRESH TASK: Update this existing article with latest 2026 developments and better flow.' : 'NEW ARTICLE TASK: Write a massive, viral, 1,500-word tech news feature based on LATEST BREAKING NEWS.'}
 
-    TOPIC: "${article.title}"
+    🚨 NEWS SIGNAL DATA (INCORPORATE THESE FACTS):
+    NEWS TITLE: "${article.title}"
+    NEWS CONTEXT/FACTS: "${article.description}"
+    SOURCE CHANNEL: ${article.source}
+
     INTERNAL LINKS TO INJECT: ${internalLinks}
     ${isRefresh ? `EXISTING CONTENT: ${existingContent.substring(0, 2000)}...` : ''}
 
-    STRICT SEO & QUALITY REQUIREMENTS:
-    1. HEADLINE: Strong, emotional, Google Discover optimized (e.g., "The NVIDIA Revelation That Changes Everything").
-    2. STRUCTURE: 1200-1800 words. Inverted pyramid intro. "Key Takeaways" section. Automatic Table of Contents.
-    3. SECTIONS: Minimum 5 <h2> headings as search queries. 1 detailed <h3> list.
-    4. ENGAGEMENT: Stylized blockquotes from analysts. Aggressive, investigative tone.
-    5. SEO: Meta tags, Focus Keywords (3-5), and Tags (5-8).
-    6. CLUSTERING: Suggest one cluster from: [AI, Technology, Gaming, Startups, Business, Science, Markets].
-    7. IMAGE: Provide a cinematic, detailed featured_image_prompt.
-    8. LINKS: Naturally embed the provided internal links using <a href="/blog/slug">text</a>.
+    STRICT EDITORIAL REQUIREMENTS:
+    1. LATEST NEWS FOCUS: This is NOT an evergreen piece. It is a BREAKING NEWS analysis. Stay current.
+    2. HEADLINE: Strong, emotional, Google Discover optimized (e.g., "The NVIDIA Revelation That Changes Everything").
+    3. STRUCTURE: 1200-1800 words. Inverted pyramid intro answering Who/What/Where/When in the first 100 words.
+    4. KEY TAKEAWAYS: A summary block with 4-5 high-impact bullets immediately after the intro.
+    5. SECTIONS: Minimum 5 <h2> headings as consumer search queries. 1 detailed <h3> list of granular facts.
+    6. ENGAGEMENT: Use 2-3 stylized blockquotes representing industry analysis. Use bolding for key terms.
+    7. SEO: Provide Meta Title, Meta Description, Focus Keywords (3-5), and Tags (5-8).
+    8. CLUSTERING: Categorize as: [AI, Technology, Gaming, Startups, Business, Science, Markets].
+    9. IMAGE: Provide a cinematic, detailed featured_image_prompt.
+    10. LINKS: Naturally embed the provided internal links using <a href="/blog/slug">text</a>.
 
     Return JSON:
     {
@@ -134,24 +194,48 @@ async function generateBlogFromNews(article, isRefresh = false, existingContent 
       "content": "Full HTML string...",
       "meta_title": "...",
       "meta_description": "...",
-        "focus_keywords": ["..."],
+      "focus_keywords": ["..."],
       "tags": ["..."],
       "topic_cluster": "...",
       "featured_image_prompt": "..."
     }`;
 
-    try {
-        console.log(`[AI Blogger] 🤖 Contacting Gemini Core (${GEMINI_MODEL})...`);
-        const res = await axios.post(`${GEMINI_API_URL}?key=${process.env.GEMINI_API_KEY}`, {
-            contents: [{ parts: [{ text: prompt }] }],
-            generationConfig: { temperature: 0.8, responseMimeType: "application/json" }
-        }, { timeout: 180000 });
+    const MAX_RETRIES = 3;
+    for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+        try {
+            console.log(`[AI Blogger] 🤖 Contacting Gemini SDK (${GEMINI_MODEL}) - Attempt ${attempt}...`);
+            const model = genAI.getGenerativeModel({ 
+                model: GEMINI_MODEL,
+                generationConfig: { 
+                    responseMimeType: "application/json",
+                    temperature: 0.8
+                }
+            });
 
-        return JSON.parse(res.data.candidates[0].content.parts[0].text);
-    } catch (err) {
-        console.error('[AI Blogger] Gemini Generation Failed:', err.message);
-        return null;
+            const result = await model.generateContent(prompt);
+            const response = await result.response;
+            const text = response.text();
+            
+            if (!text) throw new Error('Empty response from Gemini SDK');
+            
+            return JSON.parse(text);
+        } catch (err) {
+            const status = err.response?.status || err.status;
+            console.error(`[AI Blogger] Gemini Error (Attempt ${attempt}):`, status || err.message);
+
+            if (status === 429 || err.message.includes('429')) {
+                const waitTime = attempt * 45000;
+                console.warn(`[AI Blogger] ⏳ Rate limited. Waiting ${waitTime/1000}s...`);
+                await new Promise(r => setTimeout(r, waitTime));
+            } else if (attempt === MAX_RETRIES) {
+                console.error('[AI Blogger] ❌ Max retries reached.');
+                return null;
+            } else {
+                await new Promise(r => setTimeout(r, 5000));
+            }
+        }
     }
+    return null;
 }
 
 // ─── DATABASE & TAGS ──────────────────────────────────────────────────────────
