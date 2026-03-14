@@ -2,7 +2,7 @@ const axios = require('axios');
 const slugify = require('slugify');
 const pool = require('../config/db');
 
-const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent';
+const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent';
 
 // ─── Fetch top news headlines ─────────────────────────────────────────────────
 async function fetchTopNews(count = 2) {
@@ -60,8 +60,8 @@ Return ONLY a valid JSON object matching the exact schema (no markdown formattin
   "category_suggestion": "Technology, Business, Markets, World, or Science"
 }`;
 
-    // SWITCHED TO GEMINI PRO for long-form reasoning and avoiding output truncation
-    const PRO_MODEL_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro-latest:generateContent';
+    // Use Gemini 1.5 Pro on v1 for better reliability and long-form content
+    const PRO_MODEL_URL = 'https://generativelanguage.googleapis.com/v1/models/gemini-1.5-pro:generateContent';
 
     const MAX_RETRIES = 3;
     for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
