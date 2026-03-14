@@ -5,7 +5,7 @@ const { GoogleGenerativeAI } = require('@google/generative-ai');
 
 // ─── CONFIGURATION & MODELS ──────────────────────────────────────────────────
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-const GEMINI_MODEL = 'gemini-flash-lite-latest';
+const GEMINI_MODEL = 'gemini-2.0-flash';
 
 // ─── UTILITIES & HELPERS ─────────────────────────────────────────────────────
 
@@ -215,9 +215,9 @@ async function generateBlogFromNews(article, isRefresh = false, existingContent 
       "featured_image_prompt": "..."
     }`;
 
-    const MAX_RETRIES = 3;
-    console.log('[AI Blogger] ⏳ Cooling down for fresh session...');
-    await new Promise(r => setTimeout(r, 10000));
+    const MAX_RETRIES = 5;
+    console.log('[AI Blogger] ⏳ Aggressive cooldown (60s) for low-tier API reliability...');
+    await new Promise(r => setTimeout(r, 60000));
 
     for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
         try {
@@ -243,14 +243,14 @@ async function generateBlogFromNews(article, isRefresh = false, existingContent 
             console.error(`[AI Blogger] Gemini Error (Attempt ${attempt}):`, status || err.message);
 
             if (status === 429 || err.message.includes('429')) {
-                const waitTime = attempt * 60000;
+                const waitTime = attempt * 90000; // 90s, 180s, 270s...
                 console.warn(`[AI Blogger] ⏳ Rate limited. Waiting ${waitTime / 1000}s...`);
                 await new Promise(r => setTimeout(r, waitTime));
             } else if (attempt === MAX_RETRIES) {
                 console.error('[AI Blogger] ❌ Max retries reached.');
                 return null;
             } else {
-                await new Promise(r => setTimeout(r, 5000));
+                await new Promise(r => setTimeout(r, 10000));
             }
         }
     }
