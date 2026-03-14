@@ -3,310 +3,273 @@ const slugify = require('slugify');
 const pool = require('../config/db');
 
 // ─── CONFIGURATION & MODELS ──────────────────────────────────────────────────
-const GEMINI_MODEL = 'gemini-2.5-flash'; // High-context window model confirmed working
+const GEMINI_MODEL = 'gemini-2.5-flash';
 const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
 
-// ─── MULTI-SOURCE NEWS FETCHING ───────────────────────────────────────────────
+// ─── UTILITIES & HELPERS ─────────────────────────────────────────────────────
 
 /**
- * Fetch from NewsAPI (Standard)
+ * Advanced Similarity Detection (Dice's Coefficient)
  */
-async function fetchNewsAPI(count = 2) {
-    try {
-        const silos = ['technology', 'business', 'science', 'gaming'];
-        const randomSilo = silos[Math.floor(Math.random() * silos.length)];
-        
-        const res = await axios.get('https://newsapi.org/v2/top-headlines', {
-            params: {
-                language: 'en',
-                category: randomSilo,
-                pageSize: 10,
-                apiKey: process.env.NEWS_API_KEY,
-            },
-            timeout: 10000
-        });
+function compareSimilarity(str1, str2) {
+    const getBigrams = (str) => {
+        const s = str.toLowerCase().replace(/[^a-z0-9]/g, '');
+        const bigrams = new Set();
+        for (let i = 0; i < s.length - 1; i++) bigrams.add(s.substring(i, i + 2));
+        return bigrams;
+    };
+    const b1 = getBigrams(str1);
+    const b2 = getBigrams(str2);
+    const intersection = new Set([...b1].filter(x => b2.has(x)));
+    return (2.0 * intersection.size) / (b1.size + b2.size);
+}
 
-        return (res.data.articles || [])
-            .filter(a => a.title && a.description && !a.title.includes('[Removed]'))
-            .map(a => ({ title: a.title, description: a.description, source: 'NewsAPI', url: a.url }));
+/**
+ * Stability AI Image Generation (Placeholder if no key)
+ */
+async function generateFeaturedImage(prompt) {
+    const API_KEY = process.env.STABILITY_API_KEY;
+    if (!API_KEY) {
+        console.warn('[AI Blogger] ⚠️ STABILITY_API_KEY missing. Using premium placeholder.');
+        return `https://images.unsplash.com/photo-1677442136019-21780ecad995?auto=format&fit=crop&q=80&w=1200`;
+    }
+
+    try {
+        console.log('[AI Blogger] 🎨 Generating AI visual from prompt...');
+        const res = await axios.post(
+            'https://api.stability.ai/v1/generation/stable-diffusion-xl-1024-v1-0/text-to-image',
+            {
+                text_prompts: [{ text: prompt, weight: 1 }],
+                cfg_scale: 7,
+                height: 1024,
+                width: 1024,
+                steps: 30,
+                samples: 1,
+            },
+            {
+                headers: {
+                    'Content-Type': 'application/json',
+                    Accept: 'application/json',
+                    Authorization: `Bearer ${API_KEY}`,
+                },
+            }
+        );
+
+        // This would return base64, usually we'd upload to Cloudinary
+        // For brevity in this script, we'll return a placeholder if not fully integrated with Cloudinary upload
+        return "https://images.unsplash.com/photo-1620712943543-bcc4628c9757?auto=format&fit=crop&q=80&w=1200";
     } catch (err) {
-        console.error('[AI Blogger] NewsAPI Error:', err.message);
-        return [];
+        console.error('[AI Blogger] Image Gen Failed:', err.message);
+        return null;
     }
 }
 
 /**
- * Fetch from Hacker News (Elite Tech)
+ * Fetch Internal Links for SEO
  */
-async function fetchHackerNews(count = 2) {
+async function getInternalLinks() {
+    try {
+        const [rows] = await pool.query('SELECT slug, title FROM posts WHERE status = "published" ORDER BY created_at DESC LIMIT 5');
+        return rows.map(r => `<a href="/blog/${r.slug}">${r.title}</a>`).join(', ');
+    } catch (err) {
+        return '';
+    }
+}
+
+// ─── NEWS SIGNAL FETCHERS ────────────────────────────────────────────────────
+
+async function fetchNewsAPI() {
+    try {
+        const res = await axios.get('https://newsapi.org/v2/top-headlines', {
+            params: { language: 'en', category: 'technology', apiKey: process.env.NEWS_API_KEY },
+            timeout: 8000
+        });
+        return (res.data.articles || []).slice(0, 3).map(a => ({ title: a.title, description: a.description, source: 'NewsAPI' }));
+    } catch { return []; }
+}
+
+async function fetchHackerNews() {
     try {
         const { data: topIds } = await axios.get('https://hacker-news.firebaseio.com/v0/topstories.json');
         const articles = [];
-        
-        for (const id of topIds.slice(0, 10)) {
+        for (const id of topIds.slice(0, 5)) {
             const { data: item } = await axios.get(`https://hacker-news.firebaseio.com/v0/item/${id}.json`);
-            if (item && item.title && (item.url || item.text)) {
-                articles.push({
-                    title: item.title,
-                    description: item.text ? item.text.substring(0, 200) : `Hacker News discussion on ${item.title}`,
-                    source: 'HackerNews',
-                    url: item.url || `https://news.ycombinator.com/item?id=${id}`
-                });
-            }
-            if (articles.length >= count) break;
+            if (item && item.title) articles.push({ title: item.title, description: item.text || item.title, source: 'HackerNews' });
         }
         return articles;
-    } catch (err) {
-        console.error('[AI Blogger] HN Error:', err.message);
-        return [];
-    }
+    } catch { return []; }
 }
 
-/**
- * Fetch from Reddit r/technology (Trending)
- */
-async function fetchRedditTech(count = 2) {
-    try {
-        const res = await axios.get('https://www.reddit.com/r/technology/hot.json?limit=10', {
-            headers: { 'User-Agent': 'DailyUpdatesHub/1.0' }
-        });
-        
-        return res.data.data.children
-            .filter(child => !child.data.stickied && child.data.title)
-            .slice(0, count)
-            .map(child => ({
-                title: child.data.title,
-                description: child.data.selftext ? child.data.selftext.substring(0, 200) : `Hot discussion on r/technology: ${child.data.title}`,
-                source: 'Reddit',
-                url: `https://reddit.com${child.data.permalink}`
-            }));
-    } catch (err) {
-        console.error('[AI Blogger] Reddit Error:', err.message);
-        return [];
-    }
+async function fetchTopNews(count = 2) {
+    console.log('[AI Blogger] 📡 Scouring the web for high-signal topics...');
+    const news = [...(await fetchNewsAPI()), ...(await fetchHackerNews())];
+    return news.sort(() => 0.5 - Math.random()).slice(0, count);
 }
 
-/**
- * Fetch from Google Trends (RSS)
- */
-async function fetchGoogleTrends(count = 2) {
-    try {
-        const res = await axios.get('https://trends.google.com/trends/trendingsearches/daily/rss?geo=US');
-        const items = res.data.match(/<title>(.*?)<\/title>/g) || [];
-        const trends = items.slice(2, 2 + count).map(t => {
-            const title = t.replace(/<\/?title>/g, '');
-            return {
-                title: `${title} - Trending Now`,
-                description: `Analysis of why ${title} is trending today in technology and business.`,
-                source: 'GoogleTrends',
-                url: `https://trends.google.com/trends/explore?q=${encodeURIComponent(title)}`
-            };
-        });
-        return trends;
-    } catch (err) {
-        console.error('[AI Blogger] Trends Error:', err.message);
-        return [];
-    }
-}
+// ─── AI CORE ──────────────────────────────────────────────────────────────────
 
-/**
- * Combined Source Fetcher
- */
-async function fetchTopNews(count = 4) {
-    console.log('[AI Blogger] 📡 Gathering news from multiple signals...');
-    const newsPromises = [
-        fetchNewsAPI(3),
-        fetchHackerNews(3),
-        fetchRedditTech(3),
-        fetchGoogleTrends(3)
-    ];
-
-    const results = await Promise.all(newsPromises);
-    const flatNews = results.flat();
+async function generateBlogFromNews(article, isRefresh = false, existingContent = '') {
+    const internalLinks = await getInternalLinks();
     
-    // Shuffle and pick
-    return flatNews.sort(() => 0.5 - Math.random()).slice(0, count);
-}
+    const prompt = `You are a Senior Editorial Architect at The Verge. 
+    ${isRefresh ? 'REFRESH TASK: Update this existing article with latest 2026 developments and better flow.' : 'NEW ARTICLE TASK: Write a viral, 1,500-word tech feature.'}
 
-// ─── AI CONTENT GENERATION ────────────────────────────────────────────────────
-
-async function generateBlogFromNews(article) {
-    const prompt = `You are a Senior Editor at TechCrunch and Wired. Write a world-class, 1,200 to 1,800-word authoritative tech article.
-    
     TOPIC: "${article.title}"
-    CONTEXT: "${article.description}"
-    SOURCE SIGNAL: ${article.source}
-    
-    STRICT STRUCTURAL REQUIREMENTS:
-    1. INTRO: First 120 words must follow the "Inverted Pyramid" style. Answer "What, Who, When, Where, Why" immediately for Featured Snippets.
-    2. KEY TAKEAWAYS: Immediately after intro, add a block titled "Key Takeaways" with 4-5 high-impact bullet points.
-    3. TABLE OF CONTENTS: Generate a <ul> list with links (#sub-1, #sub-2 etc) to internal headings.
-    4. HEADINGS: Use minimum five (5) <h2> headings. Write them as HIGH-VOLUME SEARCH QUERIES (e.g., "Will AI Replace Software Engineers?"). Assign IDs to them.
-    5. ANALYSIS: One <h3> section must contain a detailed 8-10 point technical bullet list.
-    6. TONE: Aggressive, insightful, conversational but expert (TechCrunch style). Use industry analysis, not just summary.
-    7. QUOTES: Include 2-3 expert-style <blockquote> blocks from "Anonymous Industry Analysts" or "Senior Engineers" providing critical commentary.
-    8. INTERNAL LINKS: Embed 2-3 placeholder internal links using format <a href="/blog/related-slug">text</a>.
-    9. FEATURED IMAGE PROMPT: Create a detailed 50-word cinematic prompt for an AI image generator (like Flux or Midjourney) describing a futuristic visualization of this topic.
-    10. CONCLUSION: A powerful "The Road Ahead" closing section.
-    
-    RELIABILITY RULES:
-    - Minimum 1,200 words. Keep prose rich and verbose.
-    - No repetition.
-    - Validate that the output ends cleanly and doesn't cut off.
+    INTERNAL LINKS TO INJECT: ${internalLinks}
+    ${isRefresh ? `EXISTING CONTENT: ${existingContent.substring(0, 2000)}...` : ''}
 
-    Return ONLY a valid JSON object:
+    STRICT SEO & QUALITY REQUIREMENTS:
+    1. HEADLINE: Strong, emotional, Google Discover optimized (e.g., "The NVIDIA Revelation That Changes Everything").
+    2. STRUCTURE: 1200-1800 words. Inverted pyramid intro. "Key Takeaways" section. Automatic Table of Contents.
+    3. SECTIONS: Minimum 5 <h2> headings as search queries. 1 detailed <h3> list.
+    4. ENGAGEMENT: Stylized blockquotes from analysts. Aggressive, investigative tone.
+    5. SEO: Meta tags, Focus Keywords (3-5), and Tags (5-8).
+    6. CLUSTERING: Suggest one cluster from: [AI, Technology, Gaming, Startups, Business, Science, Markets].
+    7. IMAGE: Provide a cinematic, detailed featured_image_prompt.
+    8. LINKS: Naturally embed the provided internal links using <a href="/blog/slug">text</a>.
+
+    Return JSON:
     {
-      "title": "Enter dynamic H1 title",
-      "content": "Full HTML response with <h2>, <ul>, <blockquote>, etc.",
-      "meta_title": "SEO title < 60 chars",
-      "meta_description": "SEO desc < 160 chars",
-      "category_suggestion": "AI, Technology, Gaming, Business, Startups, Science, or Markets",
-      "featured_image_prompt": "Cinematic 3D render of..."
+      "title": "...",
+      "content": "Full HTML string...",
+      "meta_title": "...",
+      "meta_description": "...",
+        "focus_keywords": ["..."],
+      "tags": ["..."],
+      "topic_cluster": "...",
+      "featured_image_prompt": "..."
     }`;
 
-    const MAX_RETRIES = 3;
-    
-    for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
-        try {
-            console.log(`[AI Blogger] 🤖 Generating content (Attempt ${attempt}/3)...`);
-            const response = await axios.post(
-                `${GEMINI_API_URL}?key=${process.env.GEMINI_API_KEY}`,
-                {
-                    contents: [{ parts: [{ text: prompt }] }],
-                    generationConfig: { 
-                        temperature: 0.75, 
-                        maxOutputTokens: 8192,
-                        responseMimeType: "application/json"
-                    }
-                },
-                { timeout: 150000 }
-            );
-
-            const data = response.data?.candidates?.[0]?.content?.parts?.[0]?.text;
-            if (!data) throw new Error('Null response from Gemini');
-
-            const parsed = JSON.parse(data);
-            
-            // Validate word count roughly
-            const wordCount = parsed.content.split(/\s+/).length;
-            if (wordCount < 600) { // Safety check, though prompt asks for more
-                console.warn(`[AI Blogger] ⚠️ Content seems too short (${wordCount} words). Retrying...`);
-                continue;
-            }
-
-            return parsed;
-
-        } catch (error) {
-            console.error(`[AI Blogger] Gemini Error (Attempt ${attempt}):`, error.message);
-            if (error.response?.status === 429) {
-                await new Promise(r => setTimeout(r, 60000 * attempt)); // Wait 1min, 2min...
-            }
-            if (attempt === MAX_RETRIES) return null;
-        }
-    }
-}
-
-// ─── DATABASE LOGIC ───────────────────────────────────────────────────────────
-
-async function getOrCreateCategory(name) {
-    const validCategories = ['AI', 'Technology', 'Gaming', 'Business', 'Startups', 'Science', 'Markets'];
-    const finalName = validCategories.find(c => c.toLowerCase() === name.toLowerCase()) || 'Technology';
-    
     try {
-        const [rows] = await pool.query('SELECT id FROM categories WHERE name = ?', [finalName]);
-        if (rows.length) return rows[0].id;
+        console.log(`[AI Blogger] 🤖 Contacting Gemini Core (${GEMINI_MODEL})...`);
+        const res = await axios.post(`${GEMINI_API_URL}?key=${process.env.GEMINI_API_KEY}`, {
+            contents: [{ parts: [{ text: prompt }] }],
+            generationConfig: { temperature: 0.8, responseMimeType: "application/json" }
+        }, { timeout: 180000 });
 
-        const slug = slugify(finalName, { lower: true, strict: true });
-        const [res] = await pool.query('INSERT INTO categories (name, slug) VALUES (?, ?)', [finalName, slug]);
-        return res.insertId;
+        return JSON.parse(res.data.candidates[0].content.parts[0].text);
     } catch (err) {
-        return 1;
+        console.error('[AI Blogger] Gemini Generation Failed:', err.message);
+        return null;
     }
 }
 
-async function saveDraftPost(blogData, authorId, categoryId) {
+// ─── DATABASE & TAGS ──────────────────────────────────────────────────────────
+
+async function handleTags(postId, tags) {
+    if (!tags || !Array.isArray(tags)) return;
+    for (const tagName of tags) {
+        try {
+            const slug = slugify(tagName, { lower: true, strict: true });
+            await pool.query('INSERT IGNORE INTO tags (name, slug) VALUES (?, ?)', [tagName, slug]);
+            const [tagRows] = await pool.query('SELECT id FROM tags WHERE name = ?', [tagName]);
+            if (tagRows.length) {
+                await pool.query('INSERT IGNORE INTO post_tags (post_id, tag_id) VALUES (?, ?)', [postId, tagRows[0].id]);
+            }
+        } catch (e) {
+            console.warn('[AI Blogger] Tag Link Failed:', e.message);
+        }
+    }
+}
+
+async function saveDraftPost(data, authorId, categoryId) {
     try {
-        // 1. DUPLICATE CHECK
-        const [existing] = await pool.query('SELECT id FROM posts WHERE title = ?', [blogData.title]);
-        if (existing.length) {
-            console.log(`[AI Blogger] ⏩ Skipping duplicate: "${blogData.title}"`);
-            return null;
+        // 1. ADVANCED DUPLICATE CHECK
+        const [recentPosts] = await pool.query('SELECT title, slug FROM posts ORDER BY created_at DESC LIMIT 50');
+        for (const p of recentPosts) {
+            if (compareSimilarity(data.title, p.title) > 0.85) {
+                console.log(`[AI Blogger] ⏩ SIMILARITY DETECTED: "${data.title}" matches "${p.title}"`);
+                return null;
+            }
         }
 
-        // 2. SLUG UNIQUE
-        let slug = slugify(blogData.title, { lower: true, strict: true });
-        const [existingSlug] = await pool.query('SELECT id FROM posts WHERE slug = ?', [slug]);
-        if (existingSlug.length) slug = `${slug}-${Date.now().toString().slice(-4)}`;
+        const slug = slugify(data.title, { lower: true, strict: true });
+        const imgUrl = await generateFeaturedImage(data.featured_image_prompt);
 
-        // 3. READING TIME
-        const wordCount = blogData.content.replace(/<[^>]*>/g, '').split(/\s+/).length;
-        const readingTime = Math.ceil(wordCount / 225);
-
-        // 4. INSERT
         const [res] = await pool.query(
             `INSERT INTO posts 
-             (title, slug, content, category_id, author_id, meta_title, meta_description, status, featured_image_prompt, reading_time) 
-             VALUES (?, ?, ?, ?, ?, ?, ?, 'draft', ?, ?)`,
+             (title, slug, content, category_id, topic_cluster, author_id, meta_title, meta_description, focus_keywords, featured_image, featured_image_prompt, status) 
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'draft')`,
             [
-                blogData.title,
-                slug,
-                blogData.content,
-                categoryId,
-                authorId,
-                blogData.meta_title,
-                blogData.meta_description,
-                blogData.featured_image_prompt,
-                readingTime
+                data.title, slug, data.content, categoryId, data.topic_cluster,
+                authorId, data.meta_title, data.meta_description, 
+                JSON.stringify(data.focus_keywords), imgUrl, data.featured_image_prompt
             ]
         );
 
-        console.log(`[AI Blogger] ✨ Draft created: ID ${res.insertId} | ${wordCount} words`);
+        await handleTags(res.insertId, data.tags);
+        console.log(`[AI Blogger] ✨ HIGH-AUTHORITY DRAFT SAVED: ID ${res.insertId}`);
         return res.insertId;
     } catch (err) {
-        console.error('[AI Blogger] DB Insert Failed:', err.message);
+        console.error('[AI Blogger] DB Error:', err.message);
         return null;
+    }
+}
+
+// ─── FRESHNESS UPDATER ────────────────────────────────────────────────────────
+
+async function refreshOldContent() {
+    console.log('[AI Blogger] 🔄 Scanning for content freshness updates...');
+    try {
+        // Find posts older than 48 hours that haven't been updated recently
+        const [posts] = await pool.query(`
+            SELECT id, title, content, slug FROM posts 
+            WHERE status = 'published' 
+            AND created_at < DATE_SUB(NOW(), INTERVAL 48 HOUR)
+            AND (updated_at IS NULL OR updated_at < DATE_SUB(NOW(), INTERVAL 48 HOUR))
+            LIMIT 1
+        `);
+
+        if (!posts.length) return;
+
+        console.log(`[AI Blogger] 🧬 Refreshing Legacy Content: "${posts[0].title}"`);
+        const updatedData = await generateBlogFromNews({ title: posts[0].title, description: 'Updating for content freshness' }, true, posts[0].content);
+        
+        if (updatedData) {
+            await pool.query('UPDATE posts SET content = ?, updated_at = NOW() WHERE id = ?', [updatedData.content, posts[0].id]);
+            console.log(`[AI Blogger] ✅ Content Freshness Injection successful for ${posts[0].slug}`);
+        }
+    } catch (err) {
+        console.error('[AI Blogger] Refresh Failed:', err.message);
     }
 }
 
 // ─── RUNNER ───────────────────────────────────────────────────────────────────
 
-async function runAIBlogger(count = 2) {
-    console.log(`[AI Blogger] 🚀 AI Startup Initiated. Generating ${count} high-grade articles...`);
-    
+async function runAIBlogger(count = 1) {
+    const start = Date.now();
+    console.log(`[AI Blogger] 🚀 PRODUCTION PIPELINE START. TARGET: ${count}`);
+
     try {
         const news = await fetchTopNews(count);
-        if (!news.length) return { success: false, generated: 0 };
-
-        // Get admin ID
-        const [admins] = await pool.query("SELECT id FROM users WHERE role = 'admin' LIMIT 1");
-        const authorId = admins.length ? admins[0].id : 1;
+        const [admin] = await pool.query("SELECT id FROM users WHERE role = 'admin' LIMIT 1");
+        const authorId = admin[0]?.id || 1;
 
         let generated = 0;
         for (const article of news) {
-            console.log(`[AI Blogger] 🏗️ Constructing: "${article.title}" [Signal: ${article.source}]`);
-            
-            const blogData = await generateBlogFromNews(article);
-            if (!blogData) continue;
+            const data = await generateBlogFromNews(article);
+            if (!data) continue;
 
-            const categoryId = await getOrCreateCategory(blogData.category_suggestion);
-            const postId = await saveDraftPost(blogData, authorId, categoryId);
-            
-            if (postId) generated++;
+            const [cat] = await pool.query('SELECT id FROM categories WHERE name = ?', [data.topic_cluster || 'Technology']);
+            const categoryId = cat[0]?.id || 1;
 
-            // Rate limit delay (30s between posts for safety)
-            if (news.indexOf(article) < news.length - 1) {
-                console.log('[AI Blogger] ⏳ Cooling down for 30s...');
-                await new Promise(r => setTimeout(r, 30000));
-            }
+            const result = await saveDraftPost(data, authorId, categoryId);
+            if (result) generated++;
+
+            if (news.indexOf(article) < news.length - 1) await new Promise(r => setTimeout(r, 60000));
         }
 
-        console.log(`[AI Blogger] ✅ Generation cycle complete. Created ${generated} articles.`);
+        // Run freshness update after main loop
+        await refreshOldContent();
+
+        console.log(`[AI Blogger] ✅ PIPELINE COMPLETE. ${generated} Articles created in ${(Date.now() - start) / 1000}s`);
         return { success: true, generated };
     } catch (err) {
-        console.error('[AI Blogger] Fatal Cycle Error:', err.message);
+        console.error('[AI Blogger] CRITICAL ERROR:', err.message);
         return { success: false, error: err.message };
     }
 }
 
 module.exports = { runAIBlogger };
+
 
