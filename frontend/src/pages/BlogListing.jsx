@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Clock, Search, ChevronRight, ChevronLeft, TrendingUp, Tag, ArrowRight, Sparkles } from 'lucide-react';
+import { WeatherWidget, MarketWidget, TrendingPostsWidget, NewsletterWidget } from '../components/BlogWidgets';
+import { Clock, Search, ChevronRight, ChevronLeft, TrendingUp, Tag, ArrowRight, Sparkles, Activity } from 'lucide-react';
 import api from '../services/api';
-import { WeatherWidget } from '../components/BlogWidgets';
 
 const BlogListing = () => {
     const [posts, setPosts] = useState([]);
@@ -334,34 +334,43 @@ const BlogListing = () => {
                             </div>
                         </div>
 
-                        {/* New Widgets inserted here */}
                         <WeatherWidget />
+                        <MarketWidget />
+                        <TrendingPostsWidget posts={featuredPosts} />
 
-                        {/* Visual Ad / CTA */}
-                        <div className="relative group overflow-hidden rounded-[2.5rem] bg-gray-900 shadow-2xl aspect-[4/5] flex items-end p-10">
-                            <img
-                                src="https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&q=80"
-                                className="absolute inset-0 w-full h-full object-cover opacity-50 group-hover:scale-110 transition-transform duration-1000"
-                                alt="Newsletter"
-                            />
-                            <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent"></div>
-                            <div className="relative z-10 w-full">
-                                <h4 className="text-2xl font-black text-white mb-2 leading-tight">Expert Stories, Delivered.</h4>
-                                <p className="text-gray-300 text-sm mb-6 font-medium">Get the 1% knowledge others miss.</p>
-                                <form className="space-y-3">
-                                    <input
-                                        type="email"
-                                        placeholder="Email Address"
-                                        className="w-full bg-white/10 backdrop-blur-md border border-white/20 rounded-xl py-3 px-4 text-sm text-white placeholder:text-white/50 focus:outline-none focus:ring-2 focus:ring-primary-500"
-                                    />
-                                    <button className="w-full bg-white text-gray-900 font-black py-4 rounded-xl text-xs uppercase tracking-widest hover:bg-primary-50 transition-colors">
-                                        Subscribe Now
-                                    </button>
-                                </form>
+                        {/* Advertisement Space */}
+                        <div className="bg-gray-50 dark:bg-white/5 border-2 border-dashed border-gray-200 dark:border-white/10 rounded-[2rem] p-8 text-center">
+                            <span className="text-[10px] font-black uppercase tracking-widest text-gray-400">Advertisement Space</span>
+                            <div className="h-40 flex items-center justify-center">
+                                <p className="text-gray-400 text-xs italic">Place your Google AdSense code here</p>
                             </div>
                         </div>
 
+                        <NewsletterWidget />
+
                     </aside>
+                </div>
+
+                {/* Categories Grid at the Bottom */}
+                <div className="mt-24 mb-12">
+                    <div className="flex items-center gap-4 mb-10">
+                        <div className="h-px bg-gray-100 dark:bg-white/5 flex-grow"></div>
+                        <h3 className="text-sm font-black uppercase tracking-[0.4em] text-gray-400">Trending Categories</h3>
+                        <div className="h-px bg-gray-100 dark:bg-white/5 flex-grow"></div>
+                    </div>
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+                        {categories.slice(0, 6).map(cat => (
+                            <Link 
+                                key={cat.id} 
+                                to={`/?category=${cat.id}`}
+                                className="group relative h-32 rounded-3xl overflow-hidden bg-white dark:bg-dark-card border border-gray-100 dark:border-white/5 flex flex-col items-center justify-center gap-2 hover:border-primary-500 transition-all font-black text-xs uppercase tracking-widest text-gray-900 dark:text-white"
+                            >
+                                <div className="absolute inset-0 bg-primary-600 opacity-0 group-hover:opacity-5 transition-opacity"></div>
+                                <Activity size={24} className="text-primary-600 group-hover:scale-125 transition-transform" />
+                                {cat.name}
+                            </Link>
+                        ))}
+                    </div>
                 </div>
             </div>
         </div>

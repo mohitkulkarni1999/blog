@@ -100,6 +100,35 @@ const SingleBlog = () => {
 
     const cleanContent = post?.content ? DOMPurify.sanitize(post.content) : '';
 
+    // ── Generate Table of Contents & Takeaways ───────────────────────────────
+    const [toc, setToc] = useState([]);
+    const [takeaways, setTakeaways] = useState([]);
+    const [readingTime, setReadingTime] = useState(1);
+
+    useEffect(() => {
+        if (!post?.content) return;
+        
+        // 1. Calculate Reading Time (200 wpm)
+        const words = post.content.replace(/<[^>]*>/g, '').split(/\s+/).length;
+        setReadingTime(Math.ceil(words / 200));
+
+        // 2. Extract Headings for TOC
+        const doc = new DOMParser().parseFromString(post.content, 'text/html');
+        const headings = Array.from(doc.querySelectorAll('h2, h3')).map((h, i) => ({
+            id: `heading-${i}`,
+            text: h.innerText,
+            level: h.tagName
+        }));
+        setToc(headings);
+
+        // 3. Extract Bullet points for Takeaways (if they exist)
+        const firstUl = doc.querySelector('ul');
+        if (firstUl) {
+            setTakeaways(Array.from(firstUl.querySelectorAll('li')).slice(0, 4).map(li => li.innerText));
+        }
+
+    }, [post]);
+
     // ── Optimize Cloudinary URLs for Core Web Vitals ───────────────────────
     const optimizeImgUrl = (url) => {
         if (!url) return 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?auto=format&fit=crop&q=80';
@@ -249,6 +278,7 @@ const SingleBlog = () => {
                                 <span className="text-white">{post.author_name || 'Admin'}</span>
                             </div>
                             <span className="flex items-center gap-2 border-l border-white/10 pl-8"><Clock size={12} className="text-primary-500" /> {new Date(post.created_at).toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' })}</span>
+                            <span className="flex items-center gap-2 border-l border-white/10 pl-8 font-black text-primary-400">{readingTime} MIN READ</span>
                             <span className="flex items-center gap-2 border-l border-white/10 pl-8"><Eye size={12} className="text-primary-500" /> {post.view_count} Views</span>
                         </div>
                     </div>
@@ -272,6 +302,37 @@ const SingleBlog = () => {
             <div className="container mx-auto px-4">
                 <div className="max-w-3xl mx-auto animate-fade-in-up">
 
+                    {/* Key Takeaways Logic */}
+                    {takeaways.length > 0 && (
+                        <div className="mb-12 p-8 md:p-10 rounded-3xl bg-primary-50/50 dark:bg-primary-900/10 border border-primary-100 dark:border-primary-900/30">
+                            <h3 className="text-sm font-black uppercase tracking-[0.2em] text-primary-600 dark:text-primary-400 mb-6 flex items-center gap-2">
+                                <span className="w-2 h-2 bg-primary-600 rounded-full animate-pulse"></span> Key Takeaways
+                            </h3>
+                            <ul className="space-y-4">
+                                {takeaways.map((t, i) => (
+                                    <li key={i} className="flex gap-4 text-gray-700 dark:text-gray-300 font-bold text-sm leading-relaxed">
+                                        <div className="w-5 h-5 rounded-full bg-primary-600 text-white flex items-center justify-center text-[10px] flex-shrink-0 mt-0.5">✓</div>
+                                        {t}
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
+                    )}
+
+                    {/* Table of Contents */}
+                    {toc.length > 3 && (
+                        <div className="mb-12 p-8 rounded-3xl bg-white dark:bg-dark-card border border-gray-100 dark:border-white/5 shadow-soft">
+                            <h3 className="text-xs font-black uppercase tracking-widest text-gray-400 mb-6">Table of Contents</h3>
+                            <div className="space-y-3">
+                                {toc.map((h, i) => (
+                                    <a key={i} href="#" className={`block text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 font-bold text-sm transition-colors ${h.level === 'H3' ? 'pl-6 text-xs' : ''}`}>
+                                        • {h.text}
+                                    </a>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
                     {/* Sanitized HTML Content */}
                     <div className="prose prose-lg dark:prose-invert max-w-none font-medium text-gray-700 dark:text-gray-300 leading-relaxed
                                   prose-headings:font-black prose-headings:tracking-tight prose-headings:text-gray-900 dark:prose-headings:text-white
@@ -280,16 +341,8 @@ const SingleBlog = () => {
                         {parse(cleanContent)}
                     </div>
 
-                    {/* Author Signature */}
-                    <div className="mt-12 md:mt-20 p-6 md:p-10 rounded-3xl md:rounded-[2.5rem] glass-card border-gray-100 dark:border-white/5 flex flex-col md:flex-row items-center gap-6 md:gap-8 text-center md:text-left">
-                        <div className="w-20 h-20 md:w-24 md:h-24 rounded-2xl md:rounded-[2rem] bg-gradient-to-tr from-primary-600 to-indigo-500 flex items-center justify-center text-white font-black text-3xl md:text-4xl shadow-neon-primary flex-shrink-0">
-                            {post.author_name ? post.author_name.charAt(0).toUpperCase() : 'A'}
-                        </div>
-                        <div>
-                            <h4 className="text-xl font-heading font-black text-gray-900 dark:text-white uppercase tracking-tight">Written by {post.author_name || 'Admin'}</h4>
-                            <p className="text-gray-500 dark:text-gray-400 text-base mt-2 font-medium">Industry expert specializing in technical storytelling and innovative digital solutions. Dedicated to bringing you the most accurate and insightful updates daily.</p>
-                        </div>
-                    </div>
+                    {/* Author Signature Component */}
+                    <AuthorProfile name={post.author_name} />
 
                     {/* Rating Interactive */}
                     <div className="mt-8 md:mt-12 bg-white dark:bg-dark-card p-6 md:p-10 rounded-3xl md:rounded-[2.5rem] border border-gray-100 dark:border-white/5 shadow-2xl flex flex-col items-center">

@@ -1,6 +1,7 @@
 const pool = require('../config/db');
 const slugify = require('slugify');
 const { cacheGet, cacheSet, cacheDel } = require('../services/cache');
+const { pingSearchEngines } = require('../services/seoService');
 
 // @desc    Get all posts
 // @route   GET /api/posts
@@ -195,6 +196,12 @@ const createPost = async (req, res) => {
 
         // Invalidate posts listing cache
         await cacheDel('posts:page:*');
+
+        // Ping search engines if published
+        if (status === 'published') {
+            pingSearchEngines(slug).catch(() => {});
+        }
+
         res.status(201).json({ id: postId, title, slug, status });
     } catch (error) {
         res.status(500).json({ message: 'Server Error', error: error.message });
@@ -253,6 +260,12 @@ const updatePost = async (req, res) => {
             cacheDel(`post:slug:*`),
             cacheDel('posts:page:*')
         ]);
+
+        // Ping search engines if status changed to published or it was already published
+        if (status === 'published') {
+            pingSearchEngines(slug).catch(() => {});
+        }
+
         res.json({ message: 'Post updated' });
     } catch (error) {
         res.status(500).json({ message: 'Server Error', error: error.message });

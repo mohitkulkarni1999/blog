@@ -71,8 +71,9 @@ app.use('/api/ai', require('./routes/aiRoutes'));
 const { startAIBloggerScheduler } = require('./services/scheduler');
 startAIBloggerScheduler();
 
-const { getSitemap } = require('./controllers/sitemapController');
+const { getSitemap, getRobotsTxt } = require('./controllers/sitemapController');
 app.get('/sitemap.xml', getSitemap);
+app.get('/robots.txt', getRobotsTxt);
 
 // Error Handling Middleware
 app.use((err, req, res, next) => {

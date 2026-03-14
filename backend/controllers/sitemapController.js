@@ -43,4 +43,17 @@ const getSitemap = async (req, res, next) => {
     }
 };
 
-module.exports = { getSitemap };
+const getRobotsTxt = (req, res) => {
+    const robots = `User-agent: *
+Allow: /
+Disallow: /admin/
+Disallow: /login/
+Disallow: /register/
+
+Sitemap: https://dailyupdateshub.in/sitemap.xml
+`;
+    res.header('Content-Type', 'text/plain');
+    res.status(200).send(robots);
+};
+
+module.exports = { getSitemap, getRobotsTxt };

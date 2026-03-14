@@ -196,3 +196,83 @@ export const RelatedPostsGrid = ({ posts }) => {
         </section>
     );
 };
+
+// 4. Trending Posts Widget
+export const TrendingPostsWidget = ({ posts }) => {
+    if (!posts || posts.length === 0) return null;
+    return (
+        <div className="bg-white dark:bg-dark-card p-6 rounded-[2rem] shadow-soft border border-gray-100 dark:border-dark-border">
+            <h4 className="text-lg font-heading font-black text-gray-900 dark:text-white uppercase tracking-tighter flex items-center gap-2 mb-6">
+                <TrendingUp size={20} className="text-orange-500" /> Trending
+            </h4>
+            <div className="space-y-6">
+                {posts.slice(0, 5).map((post, idx) => (
+                    <Link key={post.id} to={`/blog/${post.slug}`} className="flex gap-4 group cursor-pointer">
+                        <span className="text-3xl font-black text-gray-100 dark:text-white/5 group-hover:text-primary-600/20 transition-colors">0{idx + 1}</span>
+                        <div>
+                            <h5 className="text-sm font-bold text-gray-900 dark:text-white group-hover:text-primary-600 transition-colors line-clamp-2 leading-snug">
+                                {post.title}
+                            </h5>
+                            <span className="text-[10px] font-black uppercase tracking-widest text-gray-400 mt-1 block">
+                                {post.category_name}
+                            </span>
+                        </div>
+                    </Link>
+                ))}
+            </div>
+        </div>
+    );
+};
+
+// 5. Newsletter Widget
+export const NewsletterWidget = () => {
+    const [email, setEmail] = useState('');
+    const handleSubmit = (e) => {
+        e.preventDefault();
+        alert(`Thanks! ${email} has been added to our network.`);
+        setEmail('');
+    };
+    return (
+        <div className="bg-primary-600 rounded-[2rem] p-8 text-white shadow-2xl relative overflow-hidden group">
+            <div className="absolute -right-10 -bottom-10 w-40 h-40 bg-white/10 rounded-full blur-3xl group-hover:scale-150 transition-transform duration-1000"></div>
+            <h4 className="text-2xl font-heading font-black leading-tight mb-4 relative z-10">Join the Hub Newsletter</h4>
+            <p className="text-primary-100 text-sm mb-6 relative z-10 font-medium">Get the latest breaking updates and technical deep dives delivered straight to your inbox.</p>
+            <form onSubmit={handleSubmit} className="relative z-10 space-y-3">
+                <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="your@email.com"
+                    className="w-full bg-white/10 border border-white/20 rounded-2xl px-5 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-white/50 placeholder:text-white/50"
+                    required
+                />
+                <button type="submit" className="w-full bg-white text-primary-600 font-black uppercase text-xs tracking-widest py-4 rounded-2xl shadow-xl hover:bg-gray-100 transition-all">
+                    Subscribe Now
+                </button>
+            </form>
+        </div>
+    );
+};
+
+// 6. Author Profile Card
+export const AuthorProfile = ({ name, bio }) => {
+    return (
+        <div className="mt-12 p-8 md:p-12 rounded-[2.5rem] bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/5 flex flex-col md:flex-row items-center gap-8 animate-fade-in">
+            <div className="w-24 h-24 md:w-32 md:h-32 rounded-[2.5rem] bg-gradient-to-tr from-primary-600 to-indigo-500 flex items-center justify-center text-white font-black text-4xl shadow-neon-primary flex-shrink-0">
+                {name ? name.charAt(0).toUpperCase() : 'A'}
+            </div>
+            <div className="text-center md:text-left">
+                <span className="text-[10px] font-black uppercase tracking-[0.3em] text-primary-600 dark:text-primary-400 mb-2 block">Verified Author</span>
+                <h4 className="text-2xl font-heading font-black text-gray-900 dark:text-white uppercase tracking-tight">{name || 'Mohit Ramesh Kulkarni'}</h4>
+                <p className="text-gray-500 dark:text-gray-400 text-base mt-4 font-medium leading-relaxed">
+                    {bio || "Tech writer covering AI, gaming, and emerging technologies. Dedicated to bringing you the most accurate and insightful updates daily inside the DailyUpdatesHub newsroom."}
+                </p>
+                <div className="flex items-center justify-center md:justify-start gap-4 mt-6">
+                    <div className="px-4 py-2 rounded-xl bg-white dark:bg-white/5 border border-gray-100 dark:border-white/5 text-[10px] font-black uppercase tracking-widest text-gray-400">1.2k Followers</div>
+                    <div className="px-4 py-2 rounded-xl bg-white dark:bg-white/5 border border-gray-100 dark:border-white/5 text-[10px] font-black uppercase tracking-widest text-gray-400">45 Articles</div>
+                </div>
+            </div>
+        </div>
+    );
+};
+
