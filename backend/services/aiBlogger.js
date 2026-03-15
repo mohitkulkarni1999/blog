@@ -284,16 +284,19 @@ Return ONLY JSON:
     for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
         const modelName = MODELS[currentModelIndex];
         try {
+            console.log(`[AI Blogger] 🤖 Blueprint Attempt ${attempt} (${modelName})...`);
             const model = genAI.getGenerativeModel({ model: modelName, generationConfig: { responseMimeType: "application/json", temperature: 0.3 } });
             const result = await model.generateContent(metadataPrompt);
-            metadata = JSON.parse(result.response.text().replace(/```json|```/g, '').trim());
+            const textResponse = result.response.text().replace(/```json|```/g, '').trim();
+            metadata = JSON.parse(textResponse);
+            console.log(`[AI Blogger] ✅ Blueprint Parsed: "${metadata.title}"`);
             break;
         } catch (err) {
+            console.error(`[AI Blogger] ❌ Blueprint Error (${modelName}):`, err.message);
             const status = err.response?.status || err.status;
             if ((status === 429 || err.message.includes('429')) && currentModelIndex < MODELS.length - 1) {
-                // Turbo Mode Cooldown (15s) vs Automated (60s)
                 const waitTime = isProcessing && processingStart && (Date.now() - processingStart < 35000) ? 15000 : 60000;
-                console.log(`[AI Blogger] ⏳ Quota full on ${modelName}. Retrying with next in ${waitTime/1000}s...`);
+                console.log(`[AI Blogger] ⏳ Quota full, retrying in ${waitTime/1000}s with next model...`);
                 await new Promise(r => setTimeout(r, waitTime));
                 currentModelIndex++;
                 attempt--; 
@@ -303,39 +306,20 @@ Return ONLY JSON:
         }
     }
 
-    if (!metadata) return null;
+    if (!metadata) {
+        console.error('[AI Blogger] 🚫 Metadata generation failed after all retries.');
+        return null;
+    }
 
-    // --- PHASE 2: INVESTIGATIVE MASTERPIECE ---
-    const bodyPrompt = `You are a senior investigative journalist writing for DailyUpdatesHub.in.
-
-ARTICLE STRATEGY: ${JSON.stringify(metadata)}
-NEWS SIGNAL: ${article.description}
-
-Write a professional 1500-2000 word news article.
-Style: Wired, Bloomberg, TechCrunch, The Verge.
-
-STRUCTURE:
-H1: ${metadata.title}
-By Mohit Kulkarni | Published: ${currentDate}
-
-[Table of Contents]
-Introduction explaining why the story is important TODAY.
-Main sections based on the outline.
-Explain clearly: What happened, Why it matters, Industry reaction, Market impact, Tech/Science behind it, Impact on India, Future implications.
-Add: statistics, expert style analysis, examples, real-world context.
-
-SEO REQUIREMENTS: Natural keyword usage. 
-FORMAT: RAW HTML (h2, h3, p, ul, blockquote).
-
-At the end include:
-- FAQ section with 5 questions
-- Suggested internal links section (CONTEXT: ${internalLinksContext})
-- External references section (Reuters, MIT, Harvard, IEEE, Economic Times)
-
-IMPORTANT: Word count MUST be between 1500 and 2000.
-Return ONLY RAW HTML.`;
+    // --- PHASE 2: MASTERPIECE ---
+    const bodyPrompt = `You are a senior investigative journalist for DailyUpdatesHub.in.
+Write a 1500-2000 word deep-dive article in RAW HTML for: "${metadata.title}".
+Context: "${article.description}"
+Include: TOC, Introduction, Outline sections, India perspective, Conclusion, FAQs.
+FORMAT: HTML only.`;
 
     let bodyContent = '';
+    console.log(`[AI Blogger] 🖋️ Drafting narrative masterpiece...`);
     for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
         const modelName = MODELS[currentModelIndex];
         try {
@@ -343,15 +327,15 @@ Return ONLY RAW HTML.`;
             const result = await model.generateContent(bodyPrompt);
             bodyContent = result.response.text().replace(/```html|```/g, '').trim();
             if (bodyContent.length > 5000) {
-                console.log(`[AI Blogger] 🖋️ Narrative written by ${modelName} (${bodyContent.length} chars)`);
+                console.log(`[AI Blogger] ✅ Narrative Success (${bodyContent.length} chars)`);
                 break;
             }
-            console.warn(`[AI Blogger] Narrative too short, retrying with ${modelName}...`);
+            console.warn(`[AI Blogger] ⚠️ Content too short (${bodyContent.length}), retrying...`);
         } catch (err) {
+            console.error(`[AI Blogger] ❌ Narrative Error (${modelName}):`, err.message);
             const status = err.response?.status || err.status;
             if ((status === 429 || err.message.includes('429')) && currentModelIndex < MODELS.length - 1) {
                 const waitTime = isProcessing && processingStart && (Date.now() - processingStart < 120000) ? 60000 : 120000;
-                console.log(`[AI Blogger] ⏳ 429 on body with ${modelName}. Switching in ${waitTime/1000}s...`);
                 await new Promise(r => setTimeout(r, waitTime));
                 currentModelIndex++;
                 attempt--;
@@ -363,8 +347,15 @@ Return ONLY RAW HTML.`;
 
     if (bodyContent) {
         const allKeywords = [metadata.focus_keyword, ...(metadata.secondary_keywords || [])];
-        return { ...metadata, focus_keywords: allKeywords, content: bodyContent };
+        return { 
+            ...metadata, 
+            focus_keywords: allKeywords, 
+            content: bodyContent,
+            social_caption: `Deep dive into ${metadata.title}`,
+            external_sources: []
+        };
     }
+    console.error('[AI Blogger] 🚫 Narrative generation failed.');
     return null;
 }
 
@@ -464,6 +455,7 @@ async function runAIBlogger(count = 5, isManual = false) {
         const fallbackId = allCats[0]?.id || 1;
 
         let generated = 0;
+        console.log(`[AI Blogger] 🎯 Target Sequence: ${news.length} signals found.`);
         for (let i = 0; i < news.length; i++) {
             const article = news[i];
             
@@ -473,9 +465,13 @@ async function runAIBlogger(count = 5, isManual = false) {
             for (let v = 0; v < variants.length; v++) {
                 const variant = variants[v];
                 currentProgress = isManual ? 'Generating Masterpiece...' : `Signal ${i + 1}/${news.length} - ${variant.toUpperCase()}`;
+                console.log(`[AI Blogger] ⏳ Progress: ${currentProgress} ("${article.title}")`);
                 
                 const data = await generateBlogFromNews(article, variant);
-                if (!data) continue;
+                if (!data) {
+                    console.error(`[AI Blogger] 🚫 Signal ${i+1} variant ${variant} failed generation.`);
+                    continue;
+                }
 
                 let targetCategory = data.topic_cluster;
                 if (targetCategory && targetCategory.includes('|')) targetCategory = targetCategory.split('|')[0].trim();
@@ -483,10 +479,15 @@ async function runAIBlogger(count = 5, isManual = false) {
                 const [cat] = await pool.query('SELECT id FROM categories WHERE name = ?', [targetCategory || 'Technology']);
                 const categoryId = cat[0]?.id || fallbackId;
 
+                console.log(`[AI Blogger] 💾 Saving to DB...`);
                 const result = await saveDraftPost(data, authorId, categoryId);
-                if (result) generated++;
+                if (result) {
+                    generated++;
+                    console.log(`[AI Blogger] ✅ Successfully created: draft ID ${result}`);
+                } else {
+                    console.error(`[AI Blogger] ❌ Failed to save draft for: "${data.title}"`);
+                }
 
-                // Skip staggers for Manual requests to hit the 30s target
                 if (!isManual && v < variants.length - 1) {
                     await new Promise(r => setTimeout(r, 45000));
                 }
@@ -497,7 +498,6 @@ async function runAIBlogger(count = 5, isManual = false) {
                 await new Promise(r => setTimeout(r, 60000));
             }
 
-            // If manual, we stop after the first signal to be as fast as possible
             if (isManual) break;
         }
 
