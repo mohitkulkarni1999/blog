@@ -210,28 +210,27 @@ async function generateBlogFromNews(article, isRefresh = false, existingContent 
     let metadata = null;
     let currentModelIndex = 0;
 
-    // --- PHASE 1: ELITE BLUEPRINT & SEO STRATEGY ---
-    const metadataPrompt = `You are an Elite SEO Strategist and Digital Publishing Expert.
-    Analyze this news: "${article.title}" - "${article.description}"
-    website: DailyUpdatesHub.in
+    // --- PHASE 1: VIRAL SEO STRATEGY (JSON) ---
+    const metadataPrompt = `You are an Elite SEO Strategist and Viral Traffic Architect for DailyUpdatesHub.in.
+    ANALYSIS TARGET: "${article.title}" - "${article.description}"
     
-    Generate the Strategy for a 2500-word authoritative investigative report.
-    Return JSON:
+    TASK: Generate a high-velocity SEO Strategy.
+    Return ONLY JSON:
     {
-      "title": "SEO Optimized Clickable Headline",
-      "meta_title": "Search Engine Title",
-      "meta_description": "150-160 char CTA-rich description",
-      "slug": "seo-friendly-slug",
-      "focus_keyword": "Main Ranking Keyword",
-      "secondary_keywords": ["15+ semantic/LSI keywords"],
-      "tags": ["8-12 relevant tags"],
-      "topic_cluster": "One of: Artificial Intelligence, Technology, Crypto, Startups, Internet culture, Gaming, Business, Science, Global tech trends, Innovation",
-      "featured_image_prompt": "Modern technology news illustration prompt",
-      "faqs": [{"question": "...", "answer": "..."}],
-      "outline": ["Deep Section 1 (H2)", "Sub-topic (H3)", ...]
+      "title": "Clickable SEO Headline (60 chars, power words + numbers)",
+      "meta_title": "Exact Match Focus KW (55 chars)",
+      "meta_description": "150-160 chars, CTA-rich, India-centric",
+      "slug": "seo-slug-with-kw",
+      "focus_keyword": "Primary ranking keyword",
+      "secondary_keywords": ["15+ LSI/semantic: long-tail, questions, India-specific"],
+      "tags": ["8-12: e.g. #AI #TechIndia #DigitalIndia"],
+      "topic_cluster": "One of: AI, Education, IT, News, Business, Science, Gaming, Health, Crypto, Startups, Global Tech",
+      "featured_image_prompt": "Vibrant 1024x1024 professional tech news illustration",
+      "faqs": [{"q": "Question?", "a": "200-char answer"}],
+      "outline": ["H2: Hook Intro", "H3: Breaking Details", "H2: India Context", "H2: Market Impact", "H2: Future Outlook", "H2: Conclusion"]
     }`;
 
-    console.log(`[AI Blogger] 📡 Phase 1: Developing Elite Strategy...`);
+    console.log(`[AI Blogger] 📡 Phase 1: Architecting Viral Strategy...`);
     for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
         const modelName = MODELS[currentModelIndex];
         try {
@@ -245,7 +244,7 @@ async function generateBlogFromNews(article, isRefresh = false, existingContent 
         } catch (err) {
             const status = err.response?.status || err.status;
             if (status === 429 || err.message.includes('429')) {
-                console.log(`[AI Blogger] ⏳ Cooling 60s...`);
+                console.log(`[AI Blogger] ⏳ 429 cooling (60s)...`);
                 await new Promise(r => setTimeout(r, 60000));
                 if (currentModelIndex < MODELS.length - 1) currentModelIndex++;
                 attempt--; 
@@ -257,46 +256,45 @@ async function generateBlogFromNews(article, isRefresh = false, existingContent 
 
     if (!metadata) return null;
 
-    // --- PHASE 2: ELITE INVESTIGATIVE JOURNALISM ---
-    const bodyPrompt = `You are an Elite Investigative Technology Journalist (Wired/Bloomberg style).
+    // --- PHASE 2: 2000-WORD MASTERPIECE (HTML) ---
+    const bodyPrompt = `You are an Elite Investigative Journalist and Authority Author for DailyUpdatesHub.in.
     STRATEGY: ${JSON.stringify(metadata)}
-    SOURCE DATA: "${article.description}"
-    INTERNAL LINKS TO EMBED: ${internalLinksContext}
+    CORE SIGNAL: "${article.description}"
+    INTERNAL LINKS: ${internalLinksContext}
     
-    TASK: Write a 2000-3000 word Masterpiece for DailyUpdatesHub.in.
+    GOAL: Write a 1500-2000 word authoritative investigative report.
     
-    REQUIREMENTS:
-    - PROFESSIONAL EDITORIAL TONE: Use strong storytelling, analysis, and data-driven insights.
-    - NO GENERIC AI WRITING: Make it feel human, authoritative, and investigative.
-    - STRUCTURE:
-        1. H1 Headline
-        2. Author/Date line
-        3. Table of Contents (HTML)
-        4. Hook Introduction
-        5. Extensive Body Sections (What happened, Why it matters, Industry reaction, Market impact, Future implications).
-        6. Conclusion.
-        7. FAQ Section (HTML based on metadata.faqs).
-        8. Suggested Internal Links Section (at least 5).
-        9. External References Section (3-5 authoritative sources).
+    MANDATORY STRUCTURE & RULES:
+    1. H1: ${metadata.title}
+    2. BYLINE: "By AI Editorial Team | ${currentDate}"
+    3. TOC: <nav><ul>(Auto-generate list from outline)</ul></nav>
+    4. HOOK: Strong 100-word opening story or stat.
+    5. INDIA-FIRST BIAS: Explain local impact, include Indian stats/context.
+    6. E-E-A-T: Cite data, expert-style analysis, and market ripple effects.
+    7. RICH FORMATTING: Use H2, H3, <blockquote>, <ul>, and <table> for data. Short paras (3-5 lines).
+    8. INTERNAL LINKS: Embed at least 5 links from context.
+    9. EXTERNAL LINKS: List 5 authoritative sources (Reuters/Wired/ET) at the bottom.
+    10. FAQ: Use <details><summary> for the FAQ section.
+    11. WORD COUNT: Aim for exactly 1500-2000 words of dense, high-value text.
     
-    FORMATTING: Professional HTML (h2, h3, blockquote, p, ul). Short, readable paragraphs.
-    IMPORTANT: GO DEEP. Minimum 2000 words. Do not truncate.
-    
-    Return the content as a RAW HTML string.`;
+    Return the content as RAW PROFESSIONAL HTML. No markdown.`;
 
-    console.log(`[AI Blogger] 🖋️ Phase 2: Writing 2500-word Investigative Narrative...`);
+    console.log(`[AI Blogger] 🖋️ Phase 2: Writing 2000-word Investigative Masterpiece...`);
     let bodyContent = '';
     for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
         const modelName = MODELS[currentModelIndex];
         try {
+            // Use maximum tokens to ensure we get the full 2000 words
             const model = genAI.getGenerativeModel({ 
                 model: modelName, 
                 generationConfig: { temperature: 0.7, maxOutputTokens: 8192 } 
             });
             const result = await model.generateContent(bodyPrompt);
             bodyContent = result.response.text().replace(/```html|```/g, '').trim();
-            if (bodyContent.length > 5000) break; // Expecting at least ~5k chars for 2k words
-            console.warn('[AI Blogger] Narrative too short, retrying for depth...');
+            
+            // Validate length (approx 5000+ chars for 1500+ words)
+            if (bodyContent.length > 5000) break; 
+            console.warn('[AI Blogger] Narrative too thin, retrying for depth...');
         } catch (err) {
             const status = err.response?.status || err.status;
             if (status === 429 || err.message.includes('429')) {
@@ -310,8 +308,8 @@ async function generateBlogFromNews(article, isRefresh = false, existingContent 
     }
 
     if (bodyContent) {
-        // Merge keywords for focus_keywords field
-        const allKeywords = [metadata.focus_keyword, ...metadata.secondary_keywords];
+        const allKeywords = [metadata.focus_keyword, ...(metadata.secondary_keywords || [])];
+        console.log(`[AI Blogger] ✅ Generation Success: ${bodyContent.length} chars (~${Math.round(bodyContent.length/6)} words)`);
         return { ...metadata, focus_keywords: allKeywords, content: bodyContent };
     }
     return null;
