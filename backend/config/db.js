@@ -4,7 +4,7 @@ dotenv.config();
 
 const poolConfig = process.env.DATABASE_URL
     ? {
-        uri: process.env.DATABASE_URL,
+        uri: process.env.DATABASE_URL.split('?')[0],
         ssl: {
             rejectUnauthorized: false
         }

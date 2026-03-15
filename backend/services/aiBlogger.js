@@ -5,7 +5,7 @@ const { GoogleGenerativeAI } = require('@google/generative-ai');
 
 // ─── CONFIGURATION & MODELS ──────────────────────────────────────────────────
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-const GEMINI_MODEL = 'gemini-1.5-flash';
+const GEMINI_MODEL = 'gemini-2.0-flash';
 
 // ─── UTILITIES & HELPERS ─────────────────────────────────────────────────────
 
@@ -356,7 +356,10 @@ async function runAIBlogger(count = 1) {
             const result = await saveDraftPost(data, authorId, categoryId);
             if (result) generated++;
 
-            if (news.indexOf(article) < news.length - 1) await new Promise(r => setTimeout(r, 60000));
+            if (news.indexOf(article) < news.length - 1) {
+                console.log('[AI Blogger] ⏳ Staggering next article by 120s to ensure quota freshness...');
+                await new Promise(r => setTimeout(r, 120000));
+            }
         }
 
         await refreshOldContent();
