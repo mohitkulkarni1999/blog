@@ -179,133 +179,106 @@ async function generateBlogFromNews(article, isRefresh = false, existingContent 
         day: 'numeric'
     });
 
-    const prompt = `Act as a professional investigative journalist, SEO strategist, and global news editor for a high-traffic tech publication like Wired, Bloomberg, or TechCrunch.
+    const MAX_RETRIES = 3;
+    const MODELS = ['gemini-2.5-flash', 'gemini-2.0-flash'];
+    
+    let metadata = null;
+    let currentModelIndex = 0;
 
-    ${isRefresh ? 'REFRESH TASK: Update this existing article to include latest developments up to today.' : 'NEW ARTICLE TASK: Write a massive, viral, 1200-2000 word investigative report.'}
-
-    🚨 LIVE NEWS SIGNAL (USE THESE FACTS AS THE CORE DATA):
-    HEADLINE: "${article.title}"
-    CONTEXT/DATA: "${article.description}"
-    TIMESTAMP: ${article.publishedAt || currentDate}
-    CHANNEL: ${article.source}
-
-    INTERNAL LINKS TO EMBED: ${internalLinks}
-    ${isRefresh ? `EXISTING CONTENT TO UPDATE: ${existingContent.substring(0, 2000)}...` : ''}
-
-    ARTICLE STRUCTURE & CONTENT REQUIREMENTS:
-    1. Attention-grabbing headline (H1).
-    2. Author: AI News Desk | Date: ${currentDate}.
-    3. Key Takeaways: 3–5 high-impact bullet points.
-    4. Introduction: Engaging opening paragraph explaining the breaking news.
-    5. Table of Contents (HTML List with internal links to headings).
-    6. The Breaking Development: Detailed section on the latest news.
-    7. Industry Context: Technology/Industry background and history.
-    8. Economic Pulse: Market and economic impact analysis.
-    9. Global Ripple Effects: Broad implications for society and the world.
-    10. The Road Ahead: Future outlook and predictions.
-    11. Final Verdict: Conclusion wrapping up the narrative.
-
-    STRICT EDITORIAL RULES:
-    - LENGTH: 1200–2000 words of dense, high-value text.
-    - NO FAKE EXPERTS/QUOTES: Analyze the situation based on facts, do not fabricate people.
-    - ACCURACY: Stick to the facts in the news signal. No conspiracy theories.
-    - SEO: Use H1, H2, and H3 tags naturally. Optimized for Google Discover.
-    - FORMATTING: Return well-structured HTML inside the "content" field.
-
+    // --- PHASE 1: GENERATE METADATA & OUTLINE ---
+    const metadataPrompt = `Act as an SEO Strategist and News Editor. 
+    Analyze this news: "${article.title}" - "${article.description}"
+    Generate a high-impact Title, Meta Description, Focus Keywords (8-10), Tags (10+), a Topic Cluster, and a detailed Outline for a 2000-word investigative report.
     Return JSON:
     {
       "title": "...",
-      "content": "Full HTML string summarizing the entire article structure...",
-      "meta_title": "SEO Optimized Title",
-      "meta_description": "Compelling Meta Description (150-160 chars)",
-      "focus_keywords": ["8-10 specific SEO keywords"],
-      "tags": ["10+ descriptive tags"],
-      "topic_cluster": "One of: Technology, AI, Crypto, Energy, Business, Startups, Gaming, Internet Culture, Science, Global Trends",
-      "featured_image_prompt": "Ultra-detailed realistic photo prompt for the header image",
-      "social_caption": "Engaging social media post for X/LinkedIn",
-      "slug": "seo-friendly-url-slug",
-      "external_sources": ["Source 1 Name (URL)", "Source 2 Name (URL)"]
+      "meta_title": "...",
+      "meta_description": "...",
+      "focus_keywords": ["..."],
+      "tags": ["..."],
+      "topic_cluster": "...",
+      "featured_image_prompt": "...",
+      "social_caption": "...",
+      "slug": "...",
+      "outline": ["Detailed Heading 1", "Detailed Heading 2", ...]
     }`;
 
-    const MAX_RETRIES = 5;
-    const MODEL_TO_USE = 'gemini-2.5-flash';
-    console.log(`[AI Blogger] ⏳ Preparing AI session (${MODEL_TO_USE})...`);
-    await new Promise(r => setTimeout(r, 10000 + Math.random() * 5000));
-
+    console.log(`[AI Blogger] 📡 Phase 1: Structuring Blueprint...`);
     for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+        const modelName = MODELS[currentModelIndex];
         try {
-            console.log(`[AI Blogger] 🤖 Contacting Gemini SDK (${MODEL_TO_USE}) - Attempt ${attempt}...`);
-            const model = genAI.getGenerativeModel({
-                model: MODEL_TO_USE,
-                generationConfig: {
-                    responseMimeType: "application/json",
-                    temperature: 0.4,
-                    maxOutputTokens: 8192
-                }
+            console.log(`[AI Blogger] 🤖 Contacting SDK (${modelName}) for Blueprint...`);
+            const model = genAI.getGenerativeModel({ 
+                model: modelName, 
+                generationConfig: { responseMimeType: "application/json", temperature: 0.3 } 
             });
-
-            const result = await model.generateContent(prompt);
-            const response = await result.response;
-            let text = response.text();
-
-            if (!text) throw new Error('Empty response from Gemini SDK');
-
-            // Defensive JSON cleaning
-            text = text.replace(/```json|```/g, '').trim();
-            
-            try {
-                return JSON.parse(text);
-            } catch (pErr) {
-                console.warn('[AI Blogger] JSON.parse failed. Initiating Deep Structural Repair...');
-                
-                // Deep Repair Logic: Handles unterminated strings AND missing braces
-                let repaired = text;
-                
-                // 1. Handle Unterminated String: Count unescaped quotes
-                const quotes = repaired.match(/(?<!\\)"/g) || [];
-                if (quotes.length % 2 !== 0) {
-                    repaired += '"'; 
-                }
-
-                // 2. Handle Truncated Structure: Brute-force append missing closures
-                for (let i = 0; i < 5; i++) {
-                    try {
-                        return JSON.parse(repaired);
-                    } catch (e) {
-                        repaired += '}'; // Try closing the bracket
-                    }
-                }
-
-                // 3. Last Resort: Find the last valid key-value pair boundary
-                const lastValidBrace = text.lastIndexOf('}');
-                if (lastValidBrace !== -1) {
-                    try {
-                        return JSON.parse(text.substring(0, lastValidBrace + 1));
-                    } catch (e) {
-                        throw new Error(`JSON Recovery Failed: ${pErr.message}`);
-                    }
-                }
-                throw pErr;
-            }
+            const result = await model.generateContent(metadataPrompt);
+            metadata = JSON.parse(result.response.text().replace(/```json|```/g, '').trim());
+            break;
         } catch (err) {
             const status = err.response?.status || err.status;
-            const errorMessage = err.message || '';
-            console.error(`[AI Blogger] Gemini Error (Attempt ${attempt}):`, status || errorMessage);
-
-            if (status === 429 || errorMessage.includes('429')) {
-                const waitTime = Math.pow(2, attempt) * 60000 + Math.random() * 30000;
-                console.warn(`[AI Blogger] ⏳ Rate limited. Deep cooling for ${Math.round(waitTime / 1000)}s...`);
-                await new Promise(r => setTimeout(r, waitTime));
-            } else if (status === 400 && (errorMessage.includes('expired') || errorMessage.includes('key'))) {
-                console.error('[AI Blogger] 🚨 API KEY ERROR: Please verify the key in .env matches the active project.');
-                return null;
-            } else if (attempt === MAX_RETRIES) {
-                console.error('[AI Blogger] ❌ Max retries reached.');
-                return null;
+            console.warn(`[AI Blogger] Blueprint failed (${modelName}):`, status || err.message);
+            if (status === 429 && currentModelIndex < MODELS.length - 1) {
+                console.log(`[AI Blogger] 🔄 Switching to Fallback Model: ${MODELS[++currentModelIndex]}`);
+                attempt--; // Retry immediately with fallback
             } else {
                 await new Promise(r => setTimeout(r, 15000));
             }
         }
+    }
+
+    if (!metadata) return null;
+
+    // --- PHASE 2: GENERATE FULL INVESTIGATIVE BODY ---
+    const bodyPrompt = `Act as a Senior Investigative Journalist for Wired/Bloomberg. 
+    Using the following metadata: ${JSON.stringify(metadata)}
+    And this source data: "${article.description}"
+    
+    INTERNAL LINKS TO EMBED: ${internalLinks}
+    ${isRefresh ? `EXISTING CONTENT TO UPDATE: ${existingContent.substring(0, 2000)}...` : ''}
+
+    WRITE A MASSIVE 1500-2000 WORD INVESTIGATIVE REPORT. 
+    - No repeats of the title.
+    - Start with 'Author: AI News Desk | Date: ${currentDate}'
+    - Key Takeaways (bullets)
+    - Engaging Intro
+    - Detailed sections based on the outline (include deep analysis and context)
+    - Market Analysis, Global Impact, and Future Outlook.
+    - Conclusion.
+    
+    FORMATTING: Use professional HTML (h2, h3, blockquote, p). 
+    IMPORTANT: Write the FULL content. Go deep. Minimum 1500 words.
+    
+    Return the content as a RAW HTML string.`;
+
+    console.log(`[AI Blogger] 🖋️ Phase 2: Writing Narrative Body...`);
+    let bodyContent = '';
+    for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+        const modelName = MODELS[currentModelIndex];
+        try {
+            console.log(`[AI Blogger] 🦾 Generating Full Text via ${modelName}...`);
+            const model = genAI.getGenerativeModel({ 
+                model: modelName, 
+                generationConfig: { temperature: 0.7, maxOutputTokens: 8192 } 
+            });
+            const result = await model.generateContent(bodyPrompt);
+            bodyContent = result.response.text().replace(/```html|```/g, '').trim();
+            if (bodyContent.length > 2000) break; // Success
+            console.warn('[AI Blogger] Content too short, retrying...');
+        } catch (err) {
+            const status = err.response?.status || err.status;
+            if (status === 429 && currentModelIndex < MODELS.length - 1) {
+                console.log(`[AI Blogger] 🔄 429 Hit. Switching to Fallback: ${MODELS[++currentModelIndex]}`);
+                attempt--;
+            } else {
+                const wait = Math.pow(2, attempt) * 20000;
+                await new Promise(r => setTimeout(r, wait));
+            }
+        }
+    }
+
+    if (bodyContent) {
+        return { ...metadata, content: bodyContent };
     }
     return null;
 }
