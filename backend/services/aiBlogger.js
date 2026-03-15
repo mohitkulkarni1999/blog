@@ -228,17 +228,34 @@ async function generateBlogFromNews(article, isRefresh = false, existingContent 
                 generationConfig: {
                     responseMimeType: "application/json",
                     temperature: 0.75,
-                    maxOutputTokens: 4096
+                    maxOutputTokens: 8192
                 }
             });
 
             const result = await model.generateContent(prompt);
             const response = await result.response;
-            const text = response.text();
+            let text = response.text();
 
             if (!text) throw new Error('Empty response from Gemini SDK');
 
-            return JSON.parse(text);
+            // Defensive JSON cleaning: Remove markdown code blocks if present
+            text = text.replace(/```json|```/g, '').trim();
+            
+            try {
+                return JSON.parse(text);
+            } catch (pErr) {
+                console.warn('[AI Blogger] JSON.parse failed. Attempting structural recovery...');
+                // Recovery: Find the last closing brace and truncate any trailing debris
+                const lastBrace = text.lastIndexOf('}');
+                if (lastBrace !== -1) {
+                    try {
+                        return JSON.parse(text.substring(0, lastBrace + 1));
+                    } catch (e) {
+                        throw new Error(`Critical JSON Corruption: ${pErr.message}`);
+                    }
+                }
+                throw pErr;
+            }
         } catch (err) {
             const status = err.response?.status || err.status;
             const errorMessage = err.message || '';
