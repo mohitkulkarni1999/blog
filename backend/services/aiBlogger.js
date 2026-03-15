@@ -5,7 +5,7 @@ const { GoogleGenerativeAI } = require('@google/generative-ai');
 
 // ─── CONFIGURATION & MODELS ──────────────────────────────────────────────────
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-const GEMINI_MODEL = 'gemini-2.0-flash';
+const GEMINI_MODEL = 'gemini-1.5-flash';
 
 // ─── UTILITIES & HELPERS ─────────────────────────────────────────────────────
 
@@ -81,7 +81,7 @@ async function fetchNewsAPI() {
         const categories = ['technology', 'business', 'science', 'gaming'];
         const randomCat = categories[Math.floor(Math.random() * categories.length)];
         const res = await axios.get('https://newsapi.org/v2/top-headlines', {
-            params: { language: 'en', category: randomCat, apiKey: process.env.NEWS_API_KEY, pageSize: 10 },
+            params: { language: 'en', category: randomCat, apiKey: process.env.NEWS_API_KEY, pageSize: 12 },
             timeout: 10000
         });
         return (res.data.articles || [])
@@ -173,10 +173,10 @@ async function fetchTopNews(count = 2) {
 
 async function generateBlogFromNews(article, isRefresh = false, existingContent = '') {
     const internalLinks = await getInternalLinks();
-    const currentDate = new Date().toLocaleDateString('en-US', { 
-        year: 'numeric', 
-        month: 'long', 
-        day: 'numeric' 
+    const currentDate = new Date().toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
     });
 
     const prompt = `You are the Lead Editorial Reporter at Wired, writing live on ${currentDate}.
@@ -193,20 +193,20 @@ async function generateBlogFromNews(article, isRefresh = false, existingContent 
 
     STRICT EDITORIAL REQUIREMENTS:
     1. EXCLUSIVE RELIANCE ON LIVE DATA: Use the signals provided above to drive a narrative about what is happening RIGHT NOW.
-    2. DEPTH & LENGTH: 1200-1800 words. Provide technical details, market analysis, and global implications.
+    2. DEPTH & LENGTH: Strive for 1500+ words. Provide extremely detailed technical details, deep market analysis, and long-term global implications. 
     3. PERSPECTIVE: Tech-literate, aggressive, and insightful. No generic summaries.
     4. HEADLINE: High-impact, click-worthy hot takes (e.g., "The NVIDIA Revelation That Changes Everything").
     5. STRUCTURE: Professional news layout. Inverted pyramid intro answering Who/What/Where/When in the first 100 words.
     6. KEY TAKEAWAYS: 5 high-impact bullets immediately after the intro.
-    7. SUBHEADINGS: Use at least 7-8 <h2> headings as search queries.
-    8. QUOTES: Include 3 detailed expert analysis blocks (stylized as <blockquote>).
-    9. SEO: Meta tags, Focus Keywords (5+), and 5-8 Tags.
+    7. EXTENSIVE SUBHEADINGS: Use at least 10-12 <h2> and <h3> headings to break down complex sub-topics.
+    8. QUOTES: Include 4 detailed expert analysis blocks (stylized as <blockquote>) with fictional but plausible experts.
+    9. SEO: Meta tags, Focus Keywords (8+), and 10+ Tags.
     10. LINKS: Naturally embed <a href="/blog/slug">links</a>.
 
     Return JSON:
     {
       "title": "...",
-      "content": "Full HTML string...",
+      "content": "Full HTML string... (MUST BE 1200-1800 WORDS)",
       "meta_title": "...",
       "meta_description": "...",
       "focus_keywords": ["..."],
@@ -216,8 +216,8 @@ async function generateBlogFromNews(article, isRefresh = false, existingContent 
     }`;
 
     const MAX_RETRIES = 5;
-    console.log('[AI Blogger] ⏳ Aggressive cooldown (60s) for low-tier API reliability...');
-    await new Promise(r => setTimeout(r, 60000));
+    console.log('[AI Blogger] ⏳ Cooling down for fresh session...');
+    await new Promise(r => setTimeout(r, 15000));
 
     for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
         try {
@@ -227,7 +227,7 @@ async function generateBlogFromNews(article, isRefresh = false, existingContent 
                 generationConfig: {
                     responseMimeType: "application/json",
                     temperature: 0.8,
-                    maxOutputTokens: 6144
+                    maxOutputTokens: 8192
                 }
             });
 
@@ -243,7 +243,7 @@ async function generateBlogFromNews(article, isRefresh = false, existingContent 
             console.error(`[AI Blogger] Gemini Error (Attempt ${attempt}):`, status || err.message);
 
             if (status === 429 || err.message.includes('429')) {
-                const waitTime = attempt * 90000; // 90s, 180s, 270s...
+                const waitTime = attempt * 90000; // Increased to 90s, 180s, etc.
                 console.warn(`[AI Blogger] ⏳ Rate limited. Waiting ${waitTime / 1000}s...`);
                 await new Promise(r => setTimeout(r, waitTime));
             } else if (attempt === MAX_RETRIES) {
