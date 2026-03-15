@@ -255,9 +255,9 @@ async function generateBlogFromNews(article, variant = 'primary') {
 
     const MAX_RETRIES = 5;
     const MODELS = [
-        'gemini-2.5-flash', // Verified available
-        'gemini-2.0-flash', // Verified available
-        'gemini-2.0-flash-lite' // Verified available
+        'gemini-2.0-flash-lite', // Best for high-freq limited accounts
+        'gemini-2.5-flash',      // 20 req/day limit found
+        'gemini-2.0-flash'
     ];
     
     let metadata = null;
@@ -436,7 +436,7 @@ async function refreshOldContent() {
     }
 }
 
-async function runAIBlogger(count = 5, isManual = false) {
+async function runAIBlogger(count = 2, isManual = false) {
     if (isProcessing) {
         console.log(`[AI Blogger] 🛑 Traffic Block: Already processing "${currentProgress}"`);
         return { success: false, error: 'Locked', status: currentProgress };
@@ -455,12 +455,12 @@ async function runAIBlogger(count = 5, isManual = false) {
         const fallbackId = allCats[0]?.id || 1;
 
         let generated = 0;
-        console.log(`[AI Blogger] 🎯 Target Sequence: ${news.length} signals found.`);
+        console.log(`[AI Blogger] 🎯 Target Sequence: ${news.length} signals. Multiplier: DISABLED (Save Quota)`);
         for (let i = 0; i < news.length; i++) {
             const article = news[i];
             
-            // Manual Mode: One masterpiece immediately. Automated: Traffic Multiplier.
-            const variants = isManual ? ['primary'] : ['primary', 'explainer', 'comparison'];
+            // QUOTA PROTECTION: Only generate the Primary article (Save the 20-req daily limit)
+            const variants = ['primary'];
             
             for (let v = 0; v < variants.length; v++) {
                 const variant = variants[v];
