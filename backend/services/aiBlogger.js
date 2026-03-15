@@ -239,7 +239,7 @@ async function generateBlogFromNews(article, isRefresh = false, existingContent 
                 model: MODEL_TO_USE,
                 generationConfig: {
                     responseMimeType: "application/json",
-                    temperature: 0.75,
+                    temperature: 0.4,
                     maxOutputTokens: 8192
                 }
             });
@@ -250,20 +250,39 @@ async function generateBlogFromNews(article, isRefresh = false, existingContent 
 
             if (!text) throw new Error('Empty response from Gemini SDK');
 
-            // Defensive JSON cleaning: Remove markdown code blocks if present
+            // Defensive JSON cleaning
             text = text.replace(/```json|```/g, '').trim();
             
             try {
                 return JSON.parse(text);
             } catch (pErr) {
-                console.warn('[AI Blogger] JSON.parse failed. Attempting structural recovery...');
-                // Recovery: Find the last closing brace and truncate any trailing debris
-                const lastBrace = text.lastIndexOf('}');
-                if (lastBrace !== -1) {
+                console.warn('[AI Blogger] JSON.parse failed. Initiating Deep Structural Repair...');
+                
+                // Deep Repair Logic: Handles unterminated strings AND missing braces
+                let repaired = text;
+                
+                // 1. Handle Unterminated String: Count unescaped quotes
+                const quotes = repaired.match(/(?<!\\)"/g) || [];
+                if (quotes.length % 2 !== 0) {
+                    repaired += '"'; 
+                }
+
+                // 2. Handle Truncated Structure: Brute-force append missing closures
+                for (let i = 0; i < 5; i++) {
                     try {
-                        return JSON.parse(text.substring(0, lastBrace + 1));
+                        return JSON.parse(repaired);
                     } catch (e) {
-                        throw new Error(`Critical JSON Corruption: ${pErr.message}`);
+                        repaired += '}'; // Try closing the bracket
+                    }
+                }
+
+                // 3. Last Resort: Find the last valid key-value pair boundary
+                const lastValidBrace = text.lastIndexOf('}');
+                if (lastValidBrace !== -1) {
+                    try {
+                        return JSON.parse(text.substring(0, lastValidBrace + 1));
+                    } catch (e) {
+                        throw new Error(`JSON Recovery Failed: ${pErr.message}`);
                     }
                 }
                 throw pErr;
