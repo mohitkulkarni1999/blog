@@ -179,8 +179,13 @@ async function generateBlogFromNews(article, isRefresh = false, existingContent 
         day: 'numeric'
     });
 
-    const MAX_RETRIES = 3;
-    const MODELS = ['gemini-2.5-flash', 'gemini-2.0-flash'];
+    const MAX_RETRIES = 5;
+    const MODELS = [
+        'gemini-2.5-flash', 
+        'gemini-2.5-flash-lite', 
+        'gemini-2.0-flash', 
+        'gemini-2.0-flash-lite'
+    ];
     
     let metadata = null;
     let currentModelIndex = 0;
@@ -218,11 +223,17 @@ async function generateBlogFromNews(article, isRefresh = false, existingContent 
         } catch (err) {
             const status = err.response?.status || err.status;
             console.warn(`[AI Blogger] Blueprint failed (${modelName}):`, status || err.message);
-            if (status === 429 && currentModelIndex < MODELS.length - 1) {
-                console.log(`[AI Blogger] 🔄 Switching to Fallback Model: ${MODELS[++currentModelIndex]}`);
-                attempt--; // Retry immediately with fallback
+            
+            if (status === 429 || err.message.includes('429')) {
+                console.log(`[AI Blogger] ⏳ Rate limit hit. Cooling down 60s...`);
+                await new Promise(r => setTimeout(r, 60000));
+                
+                if (currentModelIndex < MODELS.length - 1) {
+                    console.log(`[AI Blogger] 🔄 Switching to Fallback Model: ${MODELS[++currentModelIndex]}`);
+                    attempt--; 
+                }
             } else {
-                await new Promise(r => setTimeout(r, 15000));
+                await new Promise(r => setTimeout(r, 20000));
             }
         }
     }
@@ -263,13 +274,18 @@ async function generateBlogFromNews(article, isRefresh = false, existingContent 
             });
             const result = await model.generateContent(bodyPrompt);
             bodyContent = result.response.text().replace(/```html|```/g, '').trim();
-            if (bodyContent.length > 2000) break; // Success
+            if (bodyContent.length > 2000) break;
             console.warn('[AI Blogger] Content too short, retrying...');
         } catch (err) {
             const status = err.response?.status || err.status;
-            if (status === 429 && currentModelIndex < MODELS.length - 1) {
-                console.log(`[AI Blogger] 🔄 429 Hit. Switching to Fallback: ${MODELS[++currentModelIndex]}`);
-                attempt--;
+            if (status === 429 || err.message.includes('429')) {
+                console.log(`[AI Blogger] ⏳ 429 Hit. Cooling down 60s...`);
+                await new Promise(r => setTimeout(r, 60000));
+                
+                if (currentModelIndex < MODELS.length - 1) {
+                    console.log(`[AI Blogger] 🔄 Switching to Fallback Model: ${MODELS[++currentModelIndex]}`);
+                    attempt--;
+                }
             } else {
                 const wait = Math.pow(2, attempt) * 20000;
                 await new Promise(r => setTimeout(r, wait));
