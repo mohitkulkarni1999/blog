@@ -179,8 +179,9 @@ async function generateBlogFromNews(article, isRefresh = false, existingContent 
         day: 'numeric'
     });
 
-    const prompt = `You are the Lead Editorial Reporter at Wired, writing live on ${currentDate}.
-    ${isRefresh ? 'REFRESH TASK: Update this existing article to include developments up to today.' : 'NEW ARTICLE TASK: Write a massive, viral, 1200-1800 word BREAKING NEWS investigative report.'}
+    const prompt = `Act as a professional investigative journalist, SEO strategist, and global news editor for a high-traffic tech publication like Wired, Bloomberg, or TechCrunch.
+
+    ${isRefresh ? 'REFRESH TASK: Update this existing article to include latest developments up to today.' : 'NEW ARTICLE TASK: Write a massive, viral, 1200-2000 word investigative report.'}
 
     🚨 LIVE NEWS SIGNAL (USE THESE FACTS AS THE CORE DATA):
     HEADLINE: "${article.title}"
@@ -188,31 +189,42 @@ async function generateBlogFromNews(article, isRefresh = false, existingContent 
     TIMESTAMP: ${article.publishedAt || currentDate}
     CHANNEL: ${article.source}
 
-    INTERNAL LINKS: ${internalLinks}
-    ${isRefresh ? `EXISTING CONTENT: ${existingContent.substring(0, 2000)}...` : ''}
+    INTERNAL LINKS TO EMBED: ${internalLinks}
+    ${isRefresh ? `EXISTING CONTENT TO UPDATE: ${existingContent.substring(0, 2000)}...` : ''}
 
-    STRICT EDITORIAL REQUIREMENTS:
-    1. EXCLUSIVE RELIANCE ON LIVE DATA: Use the signals provided above to drive a narrative about what is happening RIGHT NOW.
-    2. DEPTH & LENGTH: Strive for 1500+ words. Provide extremely detailed technical details, deep market analysis, and long-term global implications. 
-    3. PERSPECTIVE: Tech-literate, aggressive, and insightful. No generic summaries.
-    4. HEADLINE: High-impact, click-worthy hot takes (e.g., "The NVIDIA Revelation That Changes Everything").
-    5. STRUCTURE: Professional news layout. Inverted pyramid intro answering Who/What/Where/When in the first 100 words.
-    6. KEY TAKEAWAYS: 5 high-impact bullets immediately after the intro.
-    7. EXTENSIVE SUBHEADINGS: Use at least 10-12 <h2> and <h3> headings to break down complex sub-topics.
-    8. QUOTES: Include 4 detailed expert analysis blocks (stylized as <blockquote>) with fictional but plausible experts.
-    9. SEO: Meta tags, Focus Keywords (8+), and 10+ Tags.
-    10. LINKS: Naturally embed <a href="/blog/slug">links</a>.
+    ARTICLE STRUCTURE & CONTENT REQUIREMENTS:
+    1. Attention-grabbing headline (H1).
+    2. Author: AI News Desk | Date: ${currentDate}.
+    3. Key Takeaways: 3–5 high-impact bullet points.
+    4. Introduction: Engaging opening paragraph explaining the breaking news.
+    5. Table of Contents (HTML List with internal links to headings).
+    6. The Breaking Development: Detailed section on the latest news.
+    7. Industry Context: Technology/Industry background and history.
+    8. Economic Pulse: Market and economic impact analysis.
+    9. Global Ripple Effects: Broad implications for society and the world.
+    10. The Road Ahead: Future outlook and predictions.
+    11. Final Verdict: Conclusion wrapping up the narrative.
+
+    STRICT EDITORIAL RULES:
+    - LENGTH: 1200–2000 words of dense, high-value text.
+    - NO FAKE EXPERTS/QUOTES: Analyze the situation based on facts, do not fabricate people.
+    - ACCURACY: Stick to the facts in the news signal. No conspiracy theories.
+    - SEO: Use H1, H2, and H3 tags naturally. Optimized for Google Discover.
+    - FORMATTING: Return well-structured HTML inside the "content" field.
 
     Return JSON:
     {
       "title": "...",
-      "content": "Full HTML string... (MUST BE 1200-1800 WORDS)",
-      "meta_title": "...",
-      "meta_description": "...",
-      "focus_keywords": ["..."],
-      "tags": ["..."],
-      "topic_cluster": "...",
-      "featured_image_prompt": "..."
+      "content": "Full HTML string summarizing the entire article structure...",
+      "meta_title": "SEO Optimized Title",
+      "meta_description": "Compelling Meta Description (150-160 chars)",
+      "focus_keywords": ["8-10 specific SEO keywords"],
+      "tags": ["10+ descriptive tags"],
+      "topic_cluster": "One of: Technology, AI, Crypto, Energy, Business, Startups, Gaming, Internet Culture, Science, Global Trends",
+      "featured_image_prompt": "Ultra-detailed realistic photo prompt for the header image",
+      "social_caption": "Engaging social media post for X/LinkedIn",
+      "slug": "seo-friendly-url-slug",
+      "external_sources": ["Source 1 Name (URL)", "Source 2 Name (URL)"]
     }`;
 
     const MAX_RETRIES = 5;
@@ -307,17 +319,18 @@ async function saveDraftPost(data, authorId, categoryId) {
             }
         }
 
-        const slug = slugify(data.title, { lower: true, strict: true });
+        const slug = data.slug ? slugify(data.slug, { lower: true, strict: true }) : slugify(data.title, { lower: true, strict: true });
         const imgUrl = await generateFeaturedImage(data.featured_image_prompt);
 
         const [res] = await pool.query(
             `INSERT INTO posts 
-             (title, slug, content, category_id, topic_cluster, author_id, meta_title, meta_description, focus_keywords, featured_image, featured_image_prompt, status) 
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'draft')`,
+             (title, slug, content, category_id, topic_cluster, author_id, meta_title, meta_description, focus_keywords, featured_image, featured_image_prompt, social_caption, external_sources, status) 
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'draft')`,
             [
                 data.title, slug, data.content, categoryId, data.topic_cluster,
                 authorId, data.meta_title, data.meta_description,
-                JSON.stringify(data.focus_keywords), imgUrl, data.featured_image_prompt
+                JSON.stringify(data.focus_keywords), imgUrl, data.featured_image_prompt,
+                data.social_caption, JSON.stringify(data.external_sources)
             ]
         );
 
