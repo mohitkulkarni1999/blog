@@ -78,13 +78,13 @@ async function getInternalLinks() {
 
 async function fetchNewsAPI() {
     try {
-        const allCategories = ['technology', 'business', 'science', 'gaming', 'entertainment', 'health'];
-        // Pick 3 random categories to ensure diversity
-        const selected = allCategories.sort(() => 0.5 - Math.random()).slice(0, 3);
+        const allCategories = ['technology', 'business', 'science', 'gaming'];
+        // Pick all 4 instead of 3 for broader tech coverage
+        const selected = allCategories;
         
         const newsPromises = selected.map(cat => 
             axios.get('https://newsapi.org/v2/top-headlines', {
-                params: { language: 'en', category: cat, apiKey: process.env.NEWS_API_KEY, pageSize: 10 },
+                params: { language: 'en', category: cat, apiKey: process.env.NEWS_API_KEY, pageSize: 15 },
                 timeout: 10000
             }).catch(() => ({ data: { articles: [] } }))
         );
@@ -198,11 +198,18 @@ async function fetchYouTubeTrending() {
     } catch { return []; }
 }
 
-async function fetchTopNews(count = 2) {
-    console.log('[AI Blogger] 📡 Scouring the web for the absolute latest trending news...');
+async function fetchTopNews(count = 5) {
+    console.log('[AI Blogger] 📡 Scouring the web for the absolute latest trending news (Global Multi-Source)...');
     
-    // 1. Fetch deep pool (60+ items)
-    const queries = ['technology', 'artificial intelligence', 'startups', 'business', 'science'];
+    // 1. Fetch deep pool from 15+ specialized niches
+    const queries = [
+        'technology', 'artificial intelligence', 'semiconductors', 
+        'cybersecurity', 'crypto news', 'space technology', 
+        'fintech', 'EV startups', 'robotics', 'cloud computing', 
+        'software development', 'gaming industry', 'India startups', 
+        'biotechnology', 'quantum computing', 'internet culture'
+    ];
+
     const results = await Promise.all([
         fetchNewsAPI(),
         fetchHackerNews(),
@@ -213,19 +220,28 @@ async function fetchTopNews(count = 2) {
     ]);
     const poolItems = results.flat();
 
-    // 2. Fetch recent titles from DB for deduplication
-    const [recentPosts] = await pool.query('SELECT title FROM posts ORDER BY created_at DESC LIMIT 150');
+    // 2. Fetch recent titles from DB for deduplication (heavy lookback)
+    const [recentPosts] = await pool.query('SELECT title FROM posts ORDER BY created_at DESC LIMIT 200');
     const existingTitles = recentPosts.map(p => p.title);
 
-    // 3. Filter out similar news
+    // 3. Filter out similar news and enforce STRICT 24-HOUR FRESHNESS
+    const now = new Date();
     const uniqueNews = poolItems.filter(item => {
+        // Freshness Check
+        if (item.publishedAt) {
+            const pubDate = new Date(item.publishedAt);
+            const hoursOld = (now - pubDate) / (1000 * 60 * 60);
+            if (hoursOld > 24) return false; // Discard "old" news (>24h)
+        }
+
+        // Duplication Check
         const isDuplicate = existingTitles.some(existing => compareSimilarity(item.title, existing) > 0.6);
         return !isDuplicate;
     });
 
-    console.log(`[AI Blogger] 🔍 Filtered ${poolItems.length} sources down to ${uniqueNews.length} fresh, unique candidates.`);
+    console.log(`[AI Blogger] 🔍 Freshness Validated: Found ${uniqueNews.length} articles published in the last 24 hours.`);
 
-    // 4. Shuffle and pick random candidates from the fresh pool
+    // 4. Shuffle and pick high-priority candidates
     const shuffled = uniqueNews.sort(() => 0.5 - Math.random());
     return shuffled.slice(0, count);
 }
@@ -242,10 +258,9 @@ async function generateBlogFromNews(article, variant = 'primary') {
 
     const MAX_RETRIES = 5;
     const MODELS = [
-        'gemini-2.5-flash', 
-        'gemini-2.5-flash-lite', 
         'gemini-2.0-flash', 
-        'gemini-2.0-flash-lite'
+        'gemini-1.5-flash', 
+        'gemini-1.5-flash-8b'
     ];
     
     let metadata = null;
@@ -292,12 +307,12 @@ Return ONLY JSON in this format:
         } catch (err) {
             const status = err.response?.status || err.status;
             if ((status === 429 || err.message.includes('429')) && currentModelIndex < MODELS.length - 1) {
-                console.log(`[AI Blogger] ⏳ 429 cooling (60s) for blueprint...`);
-                await new Promise(r => setTimeout(r, 60000));
+                console.log(`[AI Blogger] ⏳ 429 cooling (120s) for blueprint with ${modelName}...`);
+                await new Promise(r => setTimeout(r, 120000));
                 currentModelIndex++;
                 attempt--; 
             } else {
-                await new Promise(r => setTimeout(r, 20000));
+                await new Promise(r => setTimeout(r, 30000));
             }
         }
     }
@@ -346,11 +361,12 @@ Return ONLY RAW HTML.`;
         } catch (err) {
             const status = err.response?.status || err.status;
             if ((status === 429 || err.message.includes('429')) && currentModelIndex < MODELS.length - 1) {
-                await new Promise(r => setTimeout(r, 60000));
+                console.log(`[AI Blogger] ⏳ 429 cooling (120s) for body with ${modelName}...`);
+                await new Promise(r => setTimeout(r, 120000));
                 currentModelIndex++;
                 attempt--;
             } else {
-                await new Promise(r => setTimeout(r, 20000));
+                await new Promise(r => setTimeout(r, 30000));
             }
         }
     }
@@ -471,13 +487,13 @@ async function runAIBlogger(count = 5) {
                 const result = await saveDraftPost(data, authorId, categoryId);
                 if (result) generated++;
 
-                // Stagger variants to avoid API bursts
-                await new Promise(r => setTimeout(r, 30000));
+                // Stagger variants (120s) to avoid free-tier 429 bursts
+                await new Promise(r => setTimeout(r, 120000));
             }
 
             if (news.indexOf(article) < news.length - 1) {
-                console.log('[AI Blogger] ⏳ Cooling down 90s before next News Signal...');
-                await new Promise(r => setTimeout(r, 90000));
+                console.log('[AI Blogger] ⏳ Deep cooling 180s before next News Signal...');
+                await new Promise(r => setTimeout(r, 180000));
             }
         }
 
