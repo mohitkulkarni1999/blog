@@ -4,8 +4,8 @@ const { runAIBlogger } = require('../services/aiBlogger');
 // ─── Schedule: Run every day at 8:00 AM (IST = UTC+5:30 = 2:30 AM UTC) ───────
 // Cron format: second minute hour day-of-month month day-of-week
 // '30 2 * * *'  = 2:30 AM UTC = 8:00 AM IST
-const CRON_SCHEDULE = process.env.AI_BLOGGER_CRON || '0 */3 * * *';
-const POSTS_PER_RUN = parseInt(process.env.AI_BLOGGER_POSTS || '5', 10);
+const CRON_SCHEDULE = process.env.AI_BLOGGER_CRON || '0 */6 * * *';
+const POSTS_PER_RUN = parseInt(process.env.AI_BLOGGER_POSTS || '2', 10);
 
 function startAIBloggerScheduler() {
     if (!process.env.GEMINI_API_KEY || !process.env.NEWS_API_KEY) {

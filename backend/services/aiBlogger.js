@@ -302,9 +302,17 @@ Return ONLY a JSON object:
             }
             console.warn(`[AI Blogger] ⚠️ Content too short, retrying...`);
         } catch (err) {
-            console.error(`[AI Blogger] ❌ Generation Error (${modelName}):`, err.message);
+            const errorMsg = err.message || '';
+            const isDailyLimit = errorMsg.includes('GenerateRequestsPerDay') || errorMsg.includes('quota_requests');
+            
+            if (isDailyLimit) {
+                console.error(`[AI Blogger] 🛑 DAILY LIMIT REACHED on ${modelName}. No more blogs can be created until midnight (GMT).`);
+                return { error: 'DAILY_QUOTA_EXHAUSTED' }; // Bubble up the "Stop Everything" signal
+            }
+
+            console.error(`[AI Blogger] ❌ Generation Error (${modelName}):`, errorMsg);
             const status = err.response?.status || err.status;
-            if ((status === 429 || err.message.includes('429')) && currentModelIndex < MODELS.length - 1) {
+            if ((status === 429 || errorMsg.includes('429')) && currentModelIndex < MODELS.length - 1) {
                 const waitTime = isProcessing && processingStart && (Date.now() - processingStart < 45000) ? 20000 : 70000;
                 console.log(`[AI Blogger] ⏳ Quota full, switching model in ${waitTime/1000}s...`);
                 await new Promise(r => setTimeout(r, waitTime));
@@ -439,6 +447,12 @@ async function runAIBlogger(count = 2, isManual = false) {
                 console.log(`[AI Blogger] ⏳ Progress: ${currentProgress} ("${article.title}")`);
                 
                 const data = await generateBlogFromNews(article, variant);
+                if (data?.error === 'DAILY_QUOTA_EXHAUSTED') {
+                    console.warn('[AI Blogger] 🛑 Aborting pipeline: Daily API Quota hit.');
+                    isProcessing = false;
+                    currentProgress = 'Daily Limit Reached';
+                    return { success: false, error: 'Daily Limit Reached' };
+                }
                 if (!data) {
                     console.error(`[AI Blogger] 🚫 Signal ${i+1} variant ${variant} failed generation.`);
                     continue;
