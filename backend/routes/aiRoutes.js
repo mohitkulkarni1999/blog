@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const axios = require('axios');
 const { protect, admin } = require('../middlewares/authMiddleware');
-const { runAIBlogger } = require('../services/aiBlogger');
+const { runAIBlogger, getBloggerStatus } = require('../services/aiBlogger');
 
 // @desc    List available Gemini models for the current API key (diagnostic)
 // @route   GET /api/ai/models
@@ -26,19 +26,26 @@ router.get('/models', async (req, res) => {
 // @route   POST /api/ai/generate
 // @access  Private/Admin
 router.post('/generate', protect, admin, async (req, res) => {
+    const status = getBloggerStatus();
+    if (status.isProcessing) {
+        return res.status(423).json({ 
+            message: 'AI Blogger is already busy.', 
+            progress: status.progress,
+            uptime: `${status.uptime}s`
+        });
+    }
+
     try {
-        const count = parseInt(req.body.count) || 2;
+        const count = parseInt(req.body.count) || 5;
         if (count < 1 || count > 10) {
             return res.status(400).json({ message: 'Count must be between 1 and 10' });
         }
 
-        // Run in background — respond immediately so request doesn't time out
-        res.json({ message: `AI Blogger started. Generating ${count} blog draft(s)...`, count });
+        res.json({ message: `AI Blogger started in Turbo Mode. Creating your masterpiece...`, progress: 'Initializing...' });
 
-        // Run after response sent
         setImmediate(async () => {
             try {
-                await runAIBlogger(count);
+                await runAIBlogger(count, true); // true = Fast Manual Mode
             } catch (err) {
                 console.error('[AI Route] Background generation error:', err.message);
             }
@@ -50,14 +57,17 @@ router.post('/generate', protect, admin, async (req, res) => {
 
 // @desc    Get AI blogger status / config info
 // @route   GET /api/ai/status
-// @access  Public (safe — no sensitive data exposed)
+// @access  Public
 router.get('/status', (req, res) => {
+    const status = getBloggerStatus();
     res.json({
         enabled: !!(process.env.GEMINI_API_KEY && process.env.NEWS_API_KEY),
-        postsPerDay: parseInt(process.env.AI_BLOGGER_POSTS || '2', 10),
-        schedule: process.env.AI_BLOGGER_CRON || '30 2 * * *',
-        scheduledTime: '8:00 AM IST daily',
-        model: 'gemini-2.5-flash',
+        postsPerRun: parseInt(process.env.AI_BLOGGER_POSTS || '5', 10),
+        schedule: process.env.AI_BLOGGER_CRON || '0 */3 * * *',
+        currentModel: 'gemini-2.0-flash (Verified)',
+        isProcessing: status.isProcessing,
+        currentProgress: status.progress,
+        uptime: status.uptime
     });
 });
 

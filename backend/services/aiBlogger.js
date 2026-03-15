@@ -5,7 +5,17 @@ const { GoogleGenerativeAI } = require('@google/generative-ai');
 
 // ─── CONFIGURATION & MODELS ──────────────────────────────────────────────────
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-let isProcessing = false; // Global lock to prevent simultaneous runs
+let isProcessing = false; 
+let processingStart = null;
+let currentProgress = 'Idle';
+
+function getBloggerStatus() {
+    return {
+        isProcessing,
+        progress: currentProgress,
+        uptime: isProcessing ? Math.round((Date.now() - processingStart) / 1000) : 0
+    };
+}
 
 // ─── UTILITIES & HELPERS ─────────────────────────────────────────────────────
 
@@ -453,15 +463,16 @@ async function refreshOldContent() {
     }
 }
 
-async function runAIBlogger(count = 5) {
+async function runAIBlogger(count = 5, isManual = false) {
     if (isProcessing) {
-        console.log('[AI Blogger] 🛑 Traffic Block: A generation instance is already running.');
-        return { success: false, error: 'Locked' };
+        console.log(`[AI Blogger] 🛑 Traffic Block: Already processing "${currentProgress}"`);
+        return { success: false, error: 'Locked', status: currentProgress };
     }
+    
     isProcessing = true;
-    const start = Date.now();
-    console.log(`[AI Blogger] 🚀 PRODUCTION PIPELINE START. TARGET: ${count} News Signals (x3 Multiplier)`);
-
+    processingStart = Date.now();
+    currentProgress = 'Scouring latest tech...';
+    
     try {
         const news = await fetchTopNews(count);
         const [admin] = await pool.query("SELECT id FROM users WHERE role = 'admin' LIMIT 1");
@@ -471,11 +482,16 @@ async function runAIBlogger(count = 5) {
         const fallbackId = allCats[0]?.id || 1;
 
         let generated = 0;
-        for (const article of news) {
-            const variants = ['primary', 'explainer', 'comparison'];
+        for (let i = 0; i < news.length; i++) {
+            const article = news[i];
             
-            for (const variant of variants) {
-                console.log(`[AI Blogger] 🧬 Generating ${variant.toUpperCase()} for "${article.title}"...`);
+            // Manual Mode: One masterpiece immediately. Automated: Traffic Multiplier.
+            const variants = isManual ? ['primary'] : ['primary', 'explainer', 'comparison'];
+            
+            for (let v = 0; v < variants.length; v++) {
+                const variant = variants[v];
+                currentProgress = isManual ? 'Generating Masterpiece...' : `Signal ${i + 1}/${news.length} - ${variant.toUpperCase()}`;
+                
                 const data = await generateBlogFromNews(article, variant);
                 if (!data) continue;
 
@@ -488,27 +504,32 @@ async function runAIBlogger(count = 5) {
                 const result = await saveDraftPost(data, authorId, categoryId);
                 if (result) generated++;
 
-                // Reduced stagger (45s) — only if there's another variant coming
-                if (variants.indexOf(variant) < variants.length - 1) {
+                // Skip staggers for Manual requests to hit the 30s target
+                if (!isManual && v < variants.length - 1) {
                     await new Promise(r => setTimeout(r, 45000));
                 }
             }
 
-            if (news.indexOf(article) < news.length - 1) {
-                console.log('[AI Blogger] ⏳ Staggering next News Signal by 60s...');
+            if (!isManual && i < news.length - 1) {
+                currentProgress = `Next signal prep...`;
                 await new Promise(r => setTimeout(r, 60000));
             }
+
+            // If manual, we stop after the first signal to be as fast as possible
+            if (isManual) break;
         }
 
+        currentProgress = 'Processing freshness updates...';
         await refreshOldContent();
-        console.log(`[AI Blogger] ✅ PIPELINE COMPLETE. ${generated} Articles created in ${(Date.now() - start) / 1000}s`);
+        console.log(`[AI Blogger] ✅ PIPELINE COMPLETE. ${generated} Articles created.`);
         return { success: true, generated };
     } catch (err) {
         console.error('[AI Blogger] CRITICAL ERROR:', err.message);
         return { success: false, error: err.message };
     } finally {
         isProcessing = false;
+        currentProgress = 'Idle';
     }
 }
 
-module.exports = { runAIBlogger };
+module.exports = { runAIBlogger, getBloggerStatus };
