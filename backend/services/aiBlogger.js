@@ -255,9 +255,9 @@ async function generateBlogFromNews(article, variant = 'primary') {
 
     const MAX_RETRIES = 5;
     const MODELS = [
-        'gemini-1.5-flash', // Highest RPM for free tier
-        'gemini-2.0-flash', 
-        'gemini-1.5-flash-8b'
+        'gemini-2.5-flash', // Verified available
+        'gemini-2.0-flash', // Verified available
+        'gemini-2.0-flash-lite' // Verified available
     ];
     
     let metadata = null;

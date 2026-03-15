@@ -64,7 +64,7 @@ router.get('/status', (req, res) => {
         enabled: !!(process.env.GEMINI_API_KEY && process.env.NEWS_API_KEY),
         postsPerRun: parseInt(process.env.AI_BLOGGER_POSTS || '5', 10),
         schedule: process.env.AI_BLOGGER_CRON || '0 */3 * * *',
-        currentModel: 'gemini-2.0-flash (Verified)',
+        currentModel: 'gemini-2.5-flash (Verified)',
         isProcessing: status.isProcessing,
         currentProgress: status.progress,
         uptime: status.uptime
