@@ -78,20 +78,28 @@ async function getInternalLinks() {
 
 async function fetchNewsAPI() {
     try {
-        const categories = ['technology', 'business', 'science', 'gaming'];
-        const randomCat = categories[Math.floor(Math.random() * categories.length)];
-        const res = await axios.get('https://newsapi.org/v2/top-headlines', {
-            params: { language: 'en', category: randomCat, apiKey: process.env.NEWS_API_KEY, pageSize: 12 },
-            timeout: 10000
-        });
-        return (res.data.articles || [])
-            .filter(a => a.title && a.description && !a.title.includes('[Removed]'))
-            .map(a => ({
+        const allCategories = ['technology', 'business', 'science', 'gaming', 'entertainment', 'health'];
+        // Pick 3 random categories to ensure diversity
+        const selected = allCategories.sort(() => 0.5 - Math.random()).slice(0, 3);
+        
+        const newsPromises = selected.map(cat => 
+            axios.get('https://newsapi.org/v2/top-headlines', {
+                params: { language: 'en', category: cat, apiKey: process.env.NEWS_API_KEY, pageSize: 10 },
+                timeout: 10000
+            }).catch(() => ({ data: { articles: [] } }))
+        );
+
+        const results = await Promise.all(newsPromises);
+        const articles = results.flatMap((res, index) => 
+            (res.data.articles || []).map(a => ({
                 title: a.title,
                 description: a.description,
-                source: `NewsAPI (${randomCat})`,
+                source: `NewsAPI (${selected[index]})`,
                 publishedAt: a.publishedAt
-            }));
+            }))
+        );
+
+        return articles.filter(a => a.title && a.description && !a.title.includes('[Removed]'));
     } catch (err) {
         console.error('[AI Blogger] NewsAPI Fetch Error:', err.message);
         return [];
@@ -154,19 +162,31 @@ async function fetchGoogleTrends() {
 
 async function fetchTopNews(count = 2) {
     console.log('[AI Blogger] 📡 Scouring the web for the absolute latest trending news...');
+    
+    // 1. Fetch deep pool (30+ items)
     const results = await Promise.all([
         fetchNewsAPI(),
         fetchHackerNews(),
         fetchRedditTech(),
         fetchGoogleTrends()
     ]);
-    const news = results.flat();
-    const sortedNews = news.sort((a, b) => {
-        const dateA = new Date(a.publishedAt || 0);
-        const dateB = new Date(b.publishedAt || 0);
-        return dateB - dateA;
+    const poolItems = results.flat();
+
+    // 2. Fetch recent titles from DB for deduplication
+    const [recentPosts] = await pool.query('SELECT title FROM posts ORDER BY created_at DESC LIMIT 100');
+    const existingTitles = recentPosts.map(p => p.title);
+
+    // 3. Filter out similar news
+    const uniqueNews = poolItems.filter(item => {
+        const isDuplicate = existingTitles.some(existing => compareSimilarity(item.title, existing) > 0.6);
+        return !isDuplicate;
     });
-    return sortedNews.slice(0, count);
+
+    console.log(`[AI Blogger] 🔍 Filtered ${poolItems.length} sources down to ${uniqueNews.length} fresh, unique candidates.`);
+
+    // 4. Shuffle and pick random candidates from the fresh pool
+    const shuffled = uniqueNews.sort(() => 0.5 - Math.random());
+    return shuffled.slice(0, count);
 }
 
 // ─── AI CORE ──────────────────────────────────────────────────────────────────
