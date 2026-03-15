@@ -266,8 +266,8 @@ async function generateBlogFromNews(article, variant = 'primary') {
 
     const MAX_RETRIES = 5;
     const MODELS = [
+        'gemini-1.5-flash', // Most stable for high-frequency free tier
         'gemini-2.0-flash', 
-        'gemini-1.5-flash', 
         'gemini-1.5-flash-8b'
     ];
     
@@ -279,30 +279,23 @@ async function generateBlogFromNews(article, variant = 'primary') {
         : (variant === 'comparison' ? 'FOCUS: Comparison/Review vs Competition style.' : 'FOCUS: Deep Investigative News Report.');
 
     // --- PHASE 1: ELITE SEO BLUEPRINT ---
-    const metadataPrompt = `You are an elite investigative journalist, SEO strategist, and digital publishing expert working for DailyUpdatesHub.in.
-
-Analyze this breaking news signal:
-TITLE: "${article.title}"
-DESCRIPTION: "${article.description}"
+    const metadataPrompt = `You are an elite SEO strategist for DailyUpdatesHub.in.
+Analyze signal: "${article.title}" - "${article.description}"
 VARIANT: ${variantDirective}
-Current date: ${currentDate}
 
-Your mission is to design a HIGH-TRAFFIC SEO ARTICLE STRATEGY that can rank on Google Search and appear on Google Discover.
-The topic may belong to ANY category including: Technology, AI, Business, Education, Science, Startups, Gaming, Cybersecurity, Space, Finance, Internet Culture, Software Development.
-
-Return ONLY JSON in this format:
+Return ONLY JSON:
 {
-  "title": "Highly clickable headline optimized for Google Discover",
-  "meta_title": "SEO optimized search title",
-  "meta_description": "150-160 character description with strong click intent",
-  "slug": "seo-friendly-url-slug",
-  "focus_keyword": "primary ranking keyword",
-  "secondary_keywords": ["15-20 long tail, semantic, question based, India specific keywords"],
-  "tags": ["8-12 SEO tags"],
-  "topic_cluster": "Technology | AI | Business | Education | Science | Startups | Gaming | Cybersecurity | Space | Software | Finance",
-  "featured_image_prompt": "photorealistic news style illustration describing the topic",
-  "faqs": [{"q":"question 1","a":"answer"}, {"q":"question 2","a":"answer"}],
-  "outline": ["H2: Breaking News Overview", "H2: What Exactly Happened", "H2: Why This Story Matters Right Now", "H2: Background Context", "H2: Industry Reaction", "H2: Technology or Science Behind It", "H2: Impact on India and Global Markets", "H2: Future Predictions"]
+  "title": "Headline for Google Discover",
+  "meta_title": "SEO search title",
+  "meta_description": "150-160 char CTA description",
+  "slug": "seo-slug",
+  "focus_keyword": "primary keyword",
+  "secondary_keywords": ["15 keywords"],
+  "tags": ["8 tags"],
+  "topic_cluster": "Technology | AI | Business | Science | Startups",
+  "featured_image_prompt": "photorealistic illustration",
+  "faqs": [{"q":"q","a":"a"}],
+  "outline": ["H2: Overview", "H2: Context", "H2: Impact", "H2: India Perspective", "H2: Future", "H2: Conclusion"]
 }`;
 
     for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
@@ -311,16 +304,18 @@ Return ONLY JSON in this format:
             const model = genAI.getGenerativeModel({ model: modelName, generationConfig: { responseMimeType: "application/json", temperature: 0.3 } });
             const result = await model.generateContent(metadataPrompt);
             metadata = JSON.parse(result.response.text().replace(/```json|```/g, '').trim());
+            console.log(`[AI Blogger] ✅ Blueprint generated using ${modelName}`);
             break;
         } catch (err) {
             const status = err.response?.status || err.status;
             if ((status === 429 || err.message.includes('429')) && currentModelIndex < MODELS.length - 1) {
-                console.log(`[AI Blogger] ⏳ 429 cooling (120s) for blueprint with ${modelName}...`);
-                await new Promise(r => setTimeout(r, 120000));
+                const waitTime = isProcessing && processingStart && (Date.now() - processingStart < 60000) ? 45000 : 90000;
+                console.log(`[AI Blogger] ⏳ 429 on ${modelName}. Switching models in ${waitTime/1000}s...`);
+                await new Promise(r => setTimeout(r, waitTime));
                 currentModelIndex++;
                 attempt--; 
             } else {
-                await new Promise(r => setTimeout(r, 30000));
+                await new Promise(r => setTimeout(r, 15000));
             }
         }
     }
@@ -364,17 +359,21 @@ Return ONLY RAW HTML.`;
             const model = genAI.getGenerativeModel({ model: modelName, generationConfig: { temperature: 0.7, maxOutputTokens: 8192 } });
             const result = await model.generateContent(bodyPrompt);
             bodyContent = result.response.text().replace(/```html|```/g, '').trim();
-            if (bodyContent.length > 5000) break; 
-            console.warn(`[AI Blogger] Narrative too short for ${variant}, retrying...`);
+            if (bodyContent.length > 5000) {
+                console.log(`[AI Blogger] 🖋️ Narrative written by ${modelName} (${bodyContent.length} chars)`);
+                break;
+            }
+            console.warn(`[AI Blogger] Narrative too short, retrying with ${modelName}...`);
         } catch (err) {
             const status = err.response?.status || err.status;
             if ((status === 429 || err.message.includes('429')) && currentModelIndex < MODELS.length - 1) {
-                console.log(`[AI Blogger] ⏳ 429 cooling (120s) for body with ${modelName}...`);
-                await new Promise(r => setTimeout(r, 120000));
+                const waitTime = isProcessing && processingStart && (Date.now() - processingStart < 120000) ? 60000 : 120000;
+                console.log(`[AI Blogger] ⏳ 429 on body with ${modelName}. Switching in ${waitTime/1000}s...`);
+                await new Promise(r => setTimeout(r, waitTime));
                 currentModelIndex++;
                 attempt--;
             } else {
-                await new Promise(r => setTimeout(r, 30000));
+                await new Promise(r => setTimeout(r, 15000));
             }
         }
     }
