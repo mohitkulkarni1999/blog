@@ -248,114 +248,85 @@ async function fetchTopNews(count = 5) {
 async function generateBlogFromNews(article, variant = 'primary') {
     const internalLinksContext = await getInternalLinks();
     const currentDate = new Date().toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric'
+        year: 'numeric', month: 'long', day: 'numeric'
     });
 
     const MAX_RETRIES = 5;
     const MODELS = [
-        'gemini-2.0-flash-lite', // Best for high-freq limited accounts
-        'gemini-2.5-flash',      // 20 req/day limit found
+        'gemini-2.5-flash',      // Primary (20 req/day limit)
+        'gemini-2.5-pro',        // High IQ Fallback
+        'gemini-2.0-flash-lite', 
         'gemini-2.0-flash'
     ];
     
-    let metadata = null;
+    let resultData = null;
     let currentModelIndex = 0;
 
-    // --- PHASE 1: ELITE SEO BLUEPRINT ---
-    const metadataPrompt = `You are an elite SEO strategist for DailyUpdatesHub.in.
-Analyze signal: "${article.title}" - "${article.description}"
-Return ONLY JSON:
+    // --- CONSOLIDATED SINGLE-CALL PROMPT (Quota Optimization) ---
+    const unifiedPrompt = `You are an elite investigative journalist and SEO architect for DailyUpdatesHub.in.
+TASK: Transform this news into a VIRAL, high-authority masterpiece.
+NEWS SIGNAL: "${article.title}" - "${article.description}"
+
+Return ONLY a JSON object:
 {
-  "title": "Headline for Google Discover",
-  "meta_title": "SEO Title",
-  "meta_description": "160 char CTA",
-  "slug": "seo-slug",
-  "focus_keyword": "keyword",
+  "title": "Vibrant Headline for Google Discover",
+  "meta_title": "SEO Optimized Title",
+  "meta_description": "160 char enticing description",
+  "slug": "seo-friendly-slug",
+  "focus_keyword": "primary keyword",
   "secondary_keywords": ["10 semantic keywords"],
-  "tags": ["social tags"],
-  "topic_cluster": "Technology | AI | Business | Science",
-  "featured_image_prompt": "photorealistic photo for the topic",
-  "faqs": [{"q":"q","a":"a"}],
-  "outline": ["H2: Overview", "H2: Detailed Report", "H2: Why It Matters", "H2: India Angle", "H2: Conclusion"]
+  "tags": ["SEO tags"],
+  "topic_cluster": "Technology | AI | Business",
+  "featured_image_prompt": "photorealistic news style photo",
+  "faqs": [{"q":"...","a":"..."}],
+  "content": "A 1800-2000 word raw HTML investigative report. Include: Table of Contents, Strong Intro, Detailed body with data/analysis, India perspective, Conclusion. Use h2, h3, p, ul, blockquote tags. Natural keyword integration."
 }`;
 
+    console.log(`[AI Blogger] ⚡ Consolidating Work (1-Call Quota Mode)...`);
+    
     for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
         const modelName = MODELS[currentModelIndex];
         try {
-            console.log(`[AI Blogger] 🤖 Blueprint Attempt ${attempt} (${modelName})...`);
-            const model = genAI.getGenerativeModel({ model: modelName, generationConfig: { responseMimeType: "application/json", temperature: 0.3 } });
-            const result = await model.generateContent(metadataPrompt);
+            console.log(`[AI Blogger] 🤖 Unified Generation Attempt ${attempt} (${modelName})...`);
+            const model = genAI.getGenerativeModel({ 
+                model: modelName, 
+                generationConfig: { responseMimeType: "application/json", temperature: 0.7 } 
+            });
+            const result = await model.generateContent(unifiedPrompt);
             const textResponse = result.response.text().replace(/```json|```/g, '').trim();
-            metadata = JSON.parse(textResponse);
-            console.log(`[AI Blogger] ✅ Blueprint Parsed: "${metadata.title}"`);
-            break;
+            resultData = JSON.parse(textResponse);
+            
+            if (resultData.content && resultData.content.length > 4000) {
+                console.log(`[AI Blogger] ✅ Full Masterpiece Generated (${resultData.content.length} chars)`);
+                break;
+            }
+            console.warn(`[AI Blogger] ⚠️ Content too short, retrying...`);
         } catch (err) {
-            console.error(`[AI Blogger] ❌ Blueprint Error (${modelName}):`, err.message);
+            console.error(`[AI Blogger] ❌ Generation Error (${modelName}):`, err.message);
             const status = err.response?.status || err.status;
             if ((status === 429 || err.message.includes('429')) && currentModelIndex < MODELS.length - 1) {
-                const waitTime = isProcessing && processingStart && (Date.now() - processingStart < 35000) ? 15000 : 60000;
-                console.log(`[AI Blogger] ⏳ Quota full, retrying in ${waitTime/1000}s with next model...`);
+                const waitTime = isProcessing && processingStart && (Date.now() - processingStart < 45000) ? 20000 : 70000;
+                console.log(`[AI Blogger] ⏳ Quota full, switching model in ${waitTime/1000}s...`);
                 await new Promise(r => setTimeout(r, waitTime));
                 currentModelIndex++;
                 attempt--; 
-            } else {
-                await new Promise(r => setTimeout(r, 10000));
-            }
-        }
-    }
-
-    if (!metadata) {
-        console.error('[AI Blogger] 🚫 Metadata generation failed after all retries.');
-        return null;
-    }
-
-    // --- PHASE 2: MASTERPIECE ---
-    const bodyPrompt = `You are a senior investigative journalist for DailyUpdatesHub.in.
-Write a 1500-2000 word deep-dive article in RAW HTML for: "${metadata.title}".
-Context: "${article.description}"
-Include: TOC, Introduction, Outline sections, India perspective, Conclusion, FAQs.
-FORMAT: HTML only.`;
-
-    let bodyContent = '';
-    console.log(`[AI Blogger] 🖋️ Drafting narrative masterpiece...`);
-    for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
-        const modelName = MODELS[currentModelIndex];
-        try {
-            const model = genAI.getGenerativeModel({ model: modelName, generationConfig: { temperature: 0.7, maxOutputTokens: 8192 } });
-            const result = await model.generateContent(bodyPrompt);
-            bodyContent = result.response.text().replace(/```html|```/g, '').trim();
-            if (bodyContent.length > 5000) {
-                console.log(`[AI Blogger] ✅ Narrative Success (${bodyContent.length} chars)`);
-                break;
-            }
-            console.warn(`[AI Blogger] ⚠️ Content too short (${bodyContent.length}), retrying...`);
-        } catch (err) {
-            console.error(`[AI Blogger] ❌ Narrative Error (${modelName}):`, err.message);
-            const status = err.response?.status || err.status;
-            if ((status === 429 || err.message.includes('429')) && currentModelIndex < MODELS.length - 1) {
-                const waitTime = isProcessing && processingStart && (Date.now() - processingStart < 120000) ? 60000 : 120000;
-                await new Promise(r => setTimeout(r, waitTime));
-                currentModelIndex++;
-                attempt--;
             } else {
                 await new Promise(r => setTimeout(r, 15000));
             }
         }
     }
 
-    if (bodyContent) {
-        const allKeywords = [metadata.focus_keyword, ...(metadata.secondary_keywords || [])];
+    if (resultData && resultData.content) {
+        const allKeywords = [resultData.focus_keyword, ...(resultData.secondary_keywords || [])];
         return { 
-            ...metadata, 
+            ...resultData, 
             focus_keywords: allKeywords, 
-            content: bodyContent,
-            social_caption: `Deep dive into ${metadata.title}`,
+            social_caption: `Deep dive: ${resultData.title}`,
             external_sources: []
         };
     }
-    console.error('[AI Blogger] 🚫 Narrative generation failed.');
+    
+    console.error('[AI Blogger] 🚫 Failed to generate blog in 1-call mode.');
     return null;
 }
 
