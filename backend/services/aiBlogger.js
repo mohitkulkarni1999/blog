@@ -192,7 +192,7 @@ async function fetchTopNews(count = 2) {
 // ─── AI CORE ──────────────────────────────────────────────────────────────────
 
 async function generateBlogFromNews(article, isRefresh = false, existingContent = '') {
-    const internalLinks = await getInternalLinks();
+    const internalLinksContext = await getInternalLinks();
     const currentDate = new Date().toLocaleDateString('en-US', {
         year: 'numeric',
         month: 'long',
@@ -210,29 +210,31 @@ async function generateBlogFromNews(article, isRefresh = false, existingContent 
     let metadata = null;
     let currentModelIndex = 0;
 
-    // --- PHASE 1: GENERATE METADATA & OUTLINE ---
-    const metadataPrompt = `Act as an SEO Strategist and News Editor. 
+    // --- PHASE 1: ELITE BLUEPRINT & SEO STRATEGY ---
+    const metadataPrompt = `You are an Elite SEO Strategist and Digital Publishing Expert.
     Analyze this news: "${article.title}" - "${article.description}"
-    Generate a high-impact Title, Meta Description, Focus Keywords (8-10), Tags (10+), a Topic Cluster, and a detailed Outline for a 2000-word investigative report.
+    website: DailyUpdatesHub.in
+    
+    Generate the Strategy for a 2500-word authoritative investigative report.
     Return JSON:
     {
-      "title": "...",
-      "meta_title": "...",
-      "meta_description": "...",
-      "focus_keywords": ["..."],
-      "tags": ["..."],
-      "topic_cluster": "...",
-      "featured_image_prompt": "...",
-      "social_caption": "...",
-      "slug": "...",
-      "outline": ["Detailed Heading 1", "Detailed Heading 2", ...]
+      "title": "SEO Optimized Clickable Headline",
+      "meta_title": "Search Engine Title",
+      "meta_description": "150-160 char CTA-rich description",
+      "slug": "seo-friendly-slug",
+      "focus_keyword": "Main Ranking Keyword",
+      "secondary_keywords": ["15+ semantic/LSI keywords"],
+      "tags": ["8-12 relevant tags"],
+      "topic_cluster": "One of: Artificial Intelligence, Technology, Crypto, Startups, Internet culture, Gaming, Business, Science, Global tech trends, Innovation",
+      "featured_image_prompt": "Modern technology news illustration prompt",
+      "faqs": [{"question": "...", "answer": "..."}],
+      "outline": ["Deep Section 1 (H2)", "Sub-topic (H3)", ...]
     }`;
 
-    console.log(`[AI Blogger] 📡 Phase 1: Structuring Blueprint...`);
+    console.log(`[AI Blogger] 📡 Phase 1: Developing Elite Strategy...`);
     for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
         const modelName = MODELS[currentModelIndex];
         try {
-            console.log(`[AI Blogger] 🤖 Contacting SDK (${modelName}) for Blueprint...`);
             const model = genAI.getGenerativeModel({ 
                 model: modelName, 
                 generationConfig: { responseMimeType: "application/json", temperature: 0.3 } 
@@ -242,16 +244,11 @@ async function generateBlogFromNews(article, isRefresh = false, existingContent 
             break;
         } catch (err) {
             const status = err.response?.status || err.status;
-            console.warn(`[AI Blogger] Blueprint failed (${modelName}):`, status || err.message);
-            
             if (status === 429 || err.message.includes('429')) {
-                console.log(`[AI Blogger] ⏳ Rate limit hit. Cooling down 60s...`);
+                console.log(`[AI Blogger] ⏳ Cooling 60s...`);
                 await new Promise(r => setTimeout(r, 60000));
-                
-                if (currentModelIndex < MODELS.length - 1) {
-                    console.log(`[AI Blogger] 🔄 Switching to Fallback Model: ${MODELS[++currentModelIndex]}`);
-                    attempt--; 
-                }
+                if (currentModelIndex < MODELS.length - 1) currentModelIndex++;
+                attempt--; 
             } else {
                 await new Promise(r => setTimeout(r, 20000));
             }
@@ -260,61 +257,62 @@ async function generateBlogFromNews(article, isRefresh = false, existingContent 
 
     if (!metadata) return null;
 
-    // --- PHASE 2: GENERATE FULL INVESTIGATIVE BODY ---
-    const bodyPrompt = `Act as a Senior Investigative Journalist for Wired/Bloomberg. 
-    Using the following metadata: ${JSON.stringify(metadata)}
-    And this source data: "${article.description}"
+    // --- PHASE 2: ELITE INVESTIGATIVE JOURNALISM ---
+    const bodyPrompt = `You are an Elite Investigative Technology Journalist (Wired/Bloomberg style).
+    STRATEGY: ${JSON.stringify(metadata)}
+    SOURCE DATA: "${article.description}"
+    INTERNAL LINKS TO EMBED: ${internalLinksContext}
     
-    INTERNAL LINKS TO EMBED: ${internalLinks}
-    ${isRefresh ? `EXISTING CONTENT TO UPDATE: ${existingContent.substring(0, 2000)}...` : ''}
-
-    WRITE A MASSIVE 1500-2000 WORD INVESTIGATIVE REPORT. 
-    - No repeats of the title.
-    - Start with 'Author: AI News Desk | Date: ${currentDate}'
-    - Key Takeaways (bullets)
-    - Engaging Intro
-    - Detailed sections based on the outline (include deep analysis and context)
-    - Market Analysis, Global Impact, and Future Outlook.
-    - Conclusion.
+    TASK: Write a 2000-3000 word Masterpiece for DailyUpdatesHub.in.
     
-    FORMATTING: Use professional HTML (h2, h3, blockquote, p). 
-    IMPORTANT: Write the FULL content. Go deep. Minimum 1500 words.
+    REQUIREMENTS:
+    - PROFESSIONAL EDITORIAL TONE: Use strong storytelling, analysis, and data-driven insights.
+    - NO GENERIC AI WRITING: Make it feel human, authoritative, and investigative.
+    - STRUCTURE:
+        1. H1 Headline
+        2. Author/Date line
+        3. Table of Contents (HTML)
+        4. Hook Introduction
+        5. Extensive Body Sections (What happened, Why it matters, Industry reaction, Market impact, Future implications).
+        6. Conclusion.
+        7. FAQ Section (HTML based on metadata.faqs).
+        8. Suggested Internal Links Section (at least 5).
+        9. External References Section (3-5 authoritative sources).
+    
+    FORMATTING: Professional HTML (h2, h3, blockquote, p, ul). Short, readable paragraphs.
+    IMPORTANT: GO DEEP. Minimum 2000 words. Do not truncate.
     
     Return the content as a RAW HTML string.`;
 
-    console.log(`[AI Blogger] 🖋️ Phase 2: Writing Narrative Body...`);
+    console.log(`[AI Blogger] 🖋️ Phase 2: Writing 2500-word Investigative Narrative...`);
     let bodyContent = '';
     for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
         const modelName = MODELS[currentModelIndex];
         try {
-            console.log(`[AI Blogger] 🦾 Generating Full Text via ${modelName}...`);
             const model = genAI.getGenerativeModel({ 
                 model: modelName, 
                 generationConfig: { temperature: 0.7, maxOutputTokens: 8192 } 
             });
             const result = await model.generateContent(bodyPrompt);
             bodyContent = result.response.text().replace(/```html|```/g, '').trim();
-            if (bodyContent.length > 2000) break;
-            console.warn('[AI Blogger] Content too short, retrying...');
+            if (bodyContent.length > 5000) break; // Expecting at least ~5k chars for 2k words
+            console.warn('[AI Blogger] Narrative too short, retrying for depth...');
         } catch (err) {
             const status = err.response?.status || err.status;
             if (status === 429 || err.message.includes('429')) {
-                console.log(`[AI Blogger] ⏳ 429 Hit. Cooling down 60s...`);
                 await new Promise(r => setTimeout(r, 60000));
-                
-                if (currentModelIndex < MODELS.length - 1) {
-                    console.log(`[AI Blogger] 🔄 Switching to Fallback Model: ${MODELS[++currentModelIndex]}`);
-                    attempt--;
-                }
+                if (currentModelIndex < MODELS.length - 1) currentModelIndex++;
+                attempt--;
             } else {
-                const wait = Math.pow(2, attempt) * 20000;
-                await new Promise(r => setTimeout(r, wait));
+                await new Promise(r => setTimeout(r, 20000));
             }
         }
     }
 
     if (bodyContent) {
-        return { ...metadata, content: bodyContent };
+        // Merge keywords for focus_keywords field
+        const allKeywords = [metadata.focus_keyword, ...metadata.secondary_keywords];
+        return { ...metadata, focus_keywords: allKeywords, content: bodyContent };
     }
     return null;
 }
