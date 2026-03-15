@@ -5,7 +5,7 @@ const { GoogleGenerativeAI } = require('@google/generative-ai');
 
 // ─── CONFIGURATION & MODELS ──────────────────────────────────────────────────
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-const GEMINI_MODEL = 'gemini-2.0-flash';
+let isProcessing = false; // Global lock to prevent simultaneous runs
 
 // ─── UTILITIES & HELPERS ─────────────────────────────────────────────────────
 
@@ -199,15 +199,13 @@ async function fetchYouTubeTrending() {
 }
 
 async function fetchTopNews(count = 5) {
-    console.log('[AI Blogger] 📡 Scouring the web for the absolute latest trending news (Global Multi-Source)...');
+    console.log('[AI Blogger] 📡 Scouring high-priority tech signals...');
     
-    // 1. Fetch deep pool from 15+ specialized niches
+    // 1. Fetch deep pool from 8 curated niches (Speed Optimized)
     const queries = [
         'technology', 'artificial intelligence', 'semiconductors', 
         'cybersecurity', 'crypto news', 'space technology', 
-        'fintech', 'EV startups', 'robotics', 'cloud computing', 
-        'software development', 'gaming industry', 'India startups', 
-        'biotechnology', 'quantum computing', 'internet culture'
+        'India startups', 'internet culture'
     ];
 
     const results = await Promise.all([
@@ -456,6 +454,11 @@ async function refreshOldContent() {
 }
 
 async function runAIBlogger(count = 5) {
+    if (isProcessing) {
+        console.log('[AI Blogger] 🛑 Traffic Block: A generation instance is already running.');
+        return { success: false, error: 'Locked' };
+    }
+    isProcessing = true;
     const start = Date.now();
     console.log(`[AI Blogger] 🚀 PRODUCTION PIPELINE START. TARGET: ${count} News Signals (x3 Multiplier)`);
 
@@ -469,7 +472,6 @@ async function runAIBlogger(count = 5) {
 
         let generated = 0;
         for (const article of news) {
-            // Traffic Multiplier: Generate 3 types of articles for each news signal
             const variants = ['primary', 'explainer', 'comparison'];
             
             for (const variant of variants) {
@@ -477,7 +479,6 @@ async function runAIBlogger(count = 5) {
                 const data = await generateBlogFromNews(article, variant);
                 if (!data) continue;
 
-                // Dynamically find or use fallback category
                 let targetCategory = data.topic_cluster;
                 if (targetCategory && targetCategory.includes('|')) targetCategory = targetCategory.split('|')[0].trim();
                 
@@ -487,13 +488,15 @@ async function runAIBlogger(count = 5) {
                 const result = await saveDraftPost(data, authorId, categoryId);
                 if (result) generated++;
 
-                // Stagger variants (120s) to avoid free-tier 429 bursts
-                await new Promise(r => setTimeout(r, 120000));
+                // Reduced stagger (45s) — only if there's another variant coming
+                if (variants.indexOf(variant) < variants.length - 1) {
+                    await new Promise(r => setTimeout(r, 45000));
+                }
             }
 
             if (news.indexOf(article) < news.length - 1) {
-                console.log('[AI Blogger] ⏳ Deep cooling 180s before next News Signal...');
-                await new Promise(r => setTimeout(r, 180000));
+                console.log('[AI Blogger] ⏳ Staggering next News Signal by 60s...');
+                await new Promise(r => setTimeout(r, 60000));
             }
         }
 
@@ -503,6 +506,8 @@ async function runAIBlogger(count = 5) {
     } catch (err) {
         console.error('[AI Blogger] CRITICAL ERROR:', err.message);
         return { success: false, error: err.message };
+    } finally {
+        isProcessing = false;
     }
 }
 
