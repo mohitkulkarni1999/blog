@@ -216,18 +216,19 @@ async function generateBlogFromNews(article, isRefresh = false, existingContent 
     }`;
 
     const MAX_RETRIES = 5;
-    console.log('[AI Blogger] ⏳ Preparing AI session (Initial Jitter)...');
+    const MODEL_TO_USE = 'gemini-2.5-flash';
+    console.log(`[AI Blogger] ⏳ Preparing AI session (${MODEL_TO_USE})...`);
     await new Promise(r => setTimeout(r, 10000 + Math.random() * 5000));
 
     for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
         try {
-            console.log(`[AI Blogger] 🤖 Contacting Gemini SDK (gemini-1.5-flash-002) - Attempt ${attempt}...`);
+            console.log(`[AI Blogger] 🤖 Contacting Gemini SDK (${MODEL_TO_USE}) - Attempt ${attempt}...`);
             const model = genAI.getGenerativeModel({
-                model: 'gemini-1.5-flash-002',
+                model: MODEL_TO_USE,
                 generationConfig: {
                     responseMimeType: "application/json",
                     temperature: 0.75,
-                    maxOutputTokens: 4096 // Reduced to prevent token-per-minute (TPM) throttling
+                    maxOutputTokens: 4096
                 }
             });
 
@@ -240,18 +241,16 @@ async function generateBlogFromNews(article, isRefresh = false, existingContent 
             return JSON.parse(text);
         } catch (err) {
             const status = err.response?.status || err.status;
-            console.error(`[AI Blogger] Gemini Error (Attempt ${attempt}):`, status || err.message);
+            const errorMessage = err.message || '';
+            console.error(`[AI Blogger] Gemini Error (Attempt ${attempt}):`, status || errorMessage);
 
-            if (status === 429 || err.message.includes('429')) {
-                // Exponential backoff: 2min, 4min, 8min...
+            if (status === 429 || errorMessage.includes('429')) {
                 const waitTime = Math.pow(2, attempt) * 60000 + Math.random() * 30000;
                 console.warn(`[AI Blogger] ⏳ Rate limited. Deep cooling for ${Math.round(waitTime / 1000)}s...`);
                 await new Promise(r => setTimeout(r, waitTime));
-            } else if (status === 404 || err.message.includes('404')) {
-                console.warn('[AI Blogger] ⚠️ Model 1.5-flash-002 not found, falling back to 2.0-flash...');
-                // Internal retry with logic skip
-                // We'll just let the next attempt try again with fallback if necessary
-                await new Promise(r => setTimeout(r, 5000));
+            } else if (status === 400 && (errorMessage.includes('expired') || errorMessage.includes('key'))) {
+                console.error('[AI Blogger] 🚨 API KEY ERROR: Please verify the key in .env matches the active project.');
+                return null;
             } else if (attempt === MAX_RETRIES) {
                 console.error('[AI Blogger] ❌ Max retries reached.');
                 return null;
