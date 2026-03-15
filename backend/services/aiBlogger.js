@@ -88,30 +88,19 @@ async function getInternalLinks() {
 
 async function fetchNewsAPI() {
     try {
-        const allCategories = ['technology', 'business', 'science', 'gaming'];
-        // Pick all 4 instead of 3 for broader tech coverage
-        const selected = allCategories;
-        
-        const newsPromises = selected.map(cat => 
-            axios.get('https://newsapi.org/v2/top-headlines', {
-                params: { language: 'en', category: cat, apiKey: process.env.NEWS_API_KEY, pageSize: 15 },
-                timeout: 10000
-            }).catch(() => ({ data: { articles: [] } }))
-        );
-
-        const results = await Promise.all(newsPromises);
-        const articles = results.flatMap((res, index) => 
-            (res.data.articles || []).map(a => ({
-                title: a.title,
-                description: a.description,
-                source: `NewsAPI (${selected[index]})`,
-                publishedAt: a.publishedAt
-            }))
-        );
-
-        return articles.filter(a => a.title && a.description && !a.title.includes('[Removed]'));
+        const cat = ['technology', 'business', 'science'][Math.floor(Math.random() * 3)];
+        const res = await axios.get('https://newsapi.org/v2/top-headlines', {
+            params: { language: 'en', category: cat, apiKey: process.env.NEWS_API_KEY, pageSize: 12 },
+            timeout: 5000 // Fast timeout
+        });
+        return (res.data.articles || []).map(a => ({
+            title: a.title,
+            description: a.description,
+            source: `NewsAPI (${cat})`,
+            publishedAt: a.publishedAt
+        })).filter(a => a.title && a.description && !a.title.includes('[Removed]'));
     } catch (err) {
-        console.error('[AI Blogger] NewsAPI Fetch Error:', err.message);
+        console.error('[AI Blogger] NewsAPI Quick Fetch Failed');
         return [];
     }
 }
@@ -266,7 +255,7 @@ async function generateBlogFromNews(article, variant = 'primary') {
 
     const MAX_RETRIES = 5;
     const MODELS = [
-        'gemini-1.5-flash', // Most stable for high-frequency free tier
+        'gemini-1.5-flash', // Highest RPM for free tier
         'gemini-2.0-flash', 
         'gemini-1.5-flash-8b'
     ];
@@ -274,28 +263,22 @@ async function generateBlogFromNews(article, variant = 'primary') {
     let metadata = null;
     let currentModelIndex = 0;
 
-    const variantDirective = variant === 'explainer' 
-        ? 'FOCUS: Comprehensive Explainer/Guide style.' 
-        : (variant === 'comparison' ? 'FOCUS: Comparison/Review vs Competition style.' : 'FOCUS: Deep Investigative News Report.');
-
     // --- PHASE 1: ELITE SEO BLUEPRINT ---
     const metadataPrompt = `You are an elite SEO strategist for DailyUpdatesHub.in.
 Analyze signal: "${article.title}" - "${article.description}"
-VARIANT: ${variantDirective}
-
 Return ONLY JSON:
 {
   "title": "Headline for Google Discover",
-  "meta_title": "SEO search title",
-  "meta_description": "150-160 char CTA description",
+  "meta_title": "SEO Title",
+  "meta_description": "160 char CTA",
   "slug": "seo-slug",
-  "focus_keyword": "primary keyword",
-  "secondary_keywords": ["15 keywords"],
-  "tags": ["8 tags"],
-  "topic_cluster": "Technology | AI | Business | Science | Startups",
-  "featured_image_prompt": "photorealistic illustration",
+  "focus_keyword": "keyword",
+  "secondary_keywords": ["10 semantic keywords"],
+  "tags": ["social tags"],
+  "topic_cluster": "Technology | AI | Business | Science",
+  "featured_image_prompt": "photorealistic photo for the topic",
   "faqs": [{"q":"q","a":"a"}],
-  "outline": ["H2: Overview", "H2: Context", "H2: Impact", "H2: India Perspective", "H2: Future", "H2: Conclusion"]
+  "outline": ["H2: Overview", "H2: Detailed Report", "H2: Why It Matters", "H2: India Angle", "H2: Conclusion"]
 }`;
 
     for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
@@ -304,18 +287,18 @@ Return ONLY JSON:
             const model = genAI.getGenerativeModel({ model: modelName, generationConfig: { responseMimeType: "application/json", temperature: 0.3 } });
             const result = await model.generateContent(metadataPrompt);
             metadata = JSON.parse(result.response.text().replace(/```json|```/g, '').trim());
-            console.log(`[AI Blogger] ✅ Blueprint generated using ${modelName}`);
             break;
         } catch (err) {
             const status = err.response?.status || err.status;
             if ((status === 429 || err.message.includes('429')) && currentModelIndex < MODELS.length - 1) {
-                const waitTime = isProcessing && processingStart && (Date.now() - processingStart < 60000) ? 45000 : 90000;
-                console.log(`[AI Blogger] ⏳ 429 on ${modelName}. Switching models in ${waitTime/1000}s...`);
+                // Turbo Mode Cooldown (15s) vs Automated (60s)
+                const waitTime = isProcessing && processingStart && (Date.now() - processingStart < 35000) ? 15000 : 60000;
+                console.log(`[AI Blogger] ⏳ Quota full on ${modelName}. Retrying with next in ${waitTime/1000}s...`);
                 await new Promise(r => setTimeout(r, waitTime));
                 currentModelIndex++;
                 attempt--; 
             } else {
-                await new Promise(r => setTimeout(r, 15000));
+                await new Promise(r => setTimeout(r, 10000));
             }
         }
     }
