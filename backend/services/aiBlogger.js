@@ -160,20 +160,61 @@ async function fetchGoogleTrends() {
     } catch { return []; }
 }
 
+async function fetchGoogleNewsRSS(query = 'technology') {
+    try {
+        const url = `https://news.google.com/rss/search?q=${encodeURIComponent(query)}&hl=en-US&gl=US&ceid=US:en`;
+        const res = await axios.get(url, { timeout: 10000 });
+        const items = res.data.match(/<item>([\s\S]*?)<\/item>/g) || [];
+        return items.slice(0, 5).map(item => {
+            const title = item.match(/<title>(.*?)<\/title>/)?.[1] || '';
+            const description = item.match(/<description>([\s\S]*?)<\/description>/)?.[1] || '';
+            const pubDate = item.match(/<pubDate>(.*?)<\/pubDate>/)?.[1] || '';
+            const link = item.match(/<link>(.*?)<\/link>/)?.[1] || '';
+            return {
+                title: title.split(' - ')[0], // Remove the source suffix
+                description: description.replace(/<[^>]+>/g, '').substring(0, 400),
+                source: `Google News (${query})`,
+                publishedAt: pubDate,
+                url: link
+            };
+        });
+    } catch { return []; }
+}
+
+async function fetchYouTubeTrending() {
+    try {
+        const API_KEY = process.env.YOUTUBE_API_KEY;
+        if (!API_KEY) {
+            console.warn('[AI Blogger] ⚠️ YOUTUBE_API_KEY missing. Skipping YouTube source.');
+            return [];
+        }
+        const res = await axios.get(`https://www.googleapis.com/youtube/v3/videos?part=snippet&chart=mostPopular&maxResults=5&videoCategoryId=28&key=${API_KEY}`);
+        return (res.data.items || []).map(item => ({
+            title: item.snippet.title,
+            description: item.snippet.description.substring(0, 400),
+            source: 'YouTube Trending (Tech)',
+            publishedAt: item.snippet.publishedAt
+        }));
+    } catch { return []; }
+}
+
 async function fetchTopNews(count = 2) {
     console.log('[AI Blogger] 📡 Scouring the web for the absolute latest trending news...');
     
-    // 1. Fetch deep pool (30+ items)
+    // 1. Fetch deep pool (60+ items)
+    const queries = ['technology', 'artificial intelligence', 'startups', 'business', 'science'];
     const results = await Promise.all([
         fetchNewsAPI(),
         fetchHackerNews(),
         fetchRedditTech(),
-        fetchGoogleTrends()
+        fetchGoogleTrends(),
+        fetchYouTubeTrending(),
+        ...queries.map(q => fetchGoogleNewsRSS(q))
     ]);
     const poolItems = results.flat();
 
     // 2. Fetch recent titles from DB for deduplication
-    const [recentPosts] = await pool.query('SELECT title FROM posts ORDER BY created_at DESC LIMIT 100');
+    const [recentPosts] = await pool.query('SELECT title FROM posts ORDER BY created_at DESC LIMIT 150');
     const existingTitles = recentPosts.map(p => p.title);
 
     // 3. Filter out similar news
@@ -191,7 +232,7 @@ async function fetchTopNews(count = 2) {
 
 // ─── AI CORE ──────────────────────────────────────────────────────────────────
 
-async function generateBlogFromNews(article, isRefresh = false, existingContent = '') {
+async function generateBlogFromNews(article, variant = 'primary') {
     const internalLinksContext = await getInternalLinks();
     const currentDate = new Date().toLocaleDateString('en-US', {
         year: 'numeric',
@@ -210,43 +251,50 @@ async function generateBlogFromNews(article, isRefresh = false, existingContent 
     let metadata = null;
     let currentModelIndex = 0;
 
-    // --- PHASE 1: VIRAL SEO STRATEGY (JSON) ---
-    const metadataPrompt = `You are an Elite SEO Strategist and Viral Traffic Architect for DailyUpdatesHub.in.
-    ANALYSIS TARGET: "${article.title}" - "${article.description}"
-    
-    TASK: Generate a high-velocity SEO Strategy.
-    Return ONLY JSON:
-    {
-      "title": "Clickable SEO Headline (60 chars, power words + numbers)",
-      "meta_title": "Exact Match Focus KW (55 chars)",
-      "meta_description": "150-160 chars, CTA-rich, India-centric",
-      "slug": "seo-slug-with-kw",
-      "focus_keyword": "Primary ranking keyword",
-      "secondary_keywords": ["15+ LSI/semantic: long-tail, questions, India-specific"],
-      "tags": ["8-12: e.g. #AI #TechIndia #DigitalIndia"],
-      "topic_cluster": "One of: AI, Education, IT, News, Business, Science, Gaming, Health, Crypto, Startups, Global Tech",
-      "featured_image_prompt": "Vibrant 1024x1024 professional tech news illustration",
-      "faqs": [{"q": "Question?", "a": "200-char answer"}],
-      "outline": ["H2: Hook Intro", "H3: Breaking Details", "H2: India Context", "H2: Market Impact", "H2: Future Outlook", "H2: Conclusion"]
-    }`;
+    const variantDirective = variant === 'explainer' 
+        ? 'FOCUS: Comprehensive Explainer/Guide style.' 
+        : (variant === 'comparison' ? 'FOCUS: Comparison/Review vs Competition style.' : 'FOCUS: Deep Investigative News Report.');
 
-    console.log(`[AI Blogger] 📡 Phase 1: Architecting Viral Strategy...`);
+    // --- PHASE 1: ELITE SEO BLUEPRINT ---
+    const metadataPrompt = `You are an elite investigative journalist, SEO strategist, and digital publishing expert working for DailyUpdatesHub.in.
+
+Analyze this breaking news signal:
+TITLE: "${article.title}"
+DESCRIPTION: "${article.description}"
+VARIANT: ${variantDirective}
+Current date: ${currentDate}
+
+Your mission is to design a HIGH-TRAFFIC SEO ARTICLE STRATEGY that can rank on Google Search and appear on Google Discover.
+The topic may belong to ANY category including: Technology, AI, Business, Education, Science, Startups, Gaming, Cybersecurity, Space, Finance, Internet Culture, Software Development.
+
+Return ONLY JSON in this format:
+{
+  "title": "Highly clickable headline optimized for Google Discover",
+  "meta_title": "SEO optimized search title",
+  "meta_description": "150-160 character description with strong click intent",
+  "slug": "seo-friendly-url-slug",
+  "focus_keyword": "primary ranking keyword",
+  "secondary_keywords": ["15-20 long tail, semantic, question based, India specific keywords"],
+  "tags": ["8-12 SEO tags"],
+  "topic_cluster": "Technology | AI | Business | Education | Science | Startups | Gaming | Cybersecurity | Space | Software | Finance",
+  "featured_image_prompt": "photorealistic news style illustration describing the topic",
+  "faqs": [{"q":"question 1","a":"answer"}, {"q":"question 2","a":"answer"}],
+  "outline": ["H2: Breaking News Overview", "H2: What Exactly Happened", "H2: Why This Story Matters Right Now", "H2: Background Context", "H2: Industry Reaction", "H2: Technology or Science Behind It", "H2: Impact on India and Global Markets", "H2: Future Predictions"]
+}`;
+
     for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
         const modelName = MODELS[currentModelIndex];
         try {
-            const model = genAI.getGenerativeModel({ 
-                model: modelName, 
-                generationConfig: { responseMimeType: "application/json", temperature: 0.3 } 
-            });
+            const model = genAI.getGenerativeModel({ model: modelName, generationConfig: { responseMimeType: "application/json", temperature: 0.3 } });
             const result = await model.generateContent(metadataPrompt);
             metadata = JSON.parse(result.response.text().replace(/```json|```/g, '').trim());
             break;
         } catch (err) {
             const status = err.response?.status || err.status;
-            if (status === 429 || err.message.includes('429')) {
-                console.log(`[AI Blogger] ⏳ 429 cooling (60s)...`);
+            if ((status === 429 || err.message.includes('429')) && currentModelIndex < MODELS.length - 1) {
+                console.log(`[AI Blogger] ⏳ 429 cooling (60s) for blueprint...`);
                 await new Promise(r => setTimeout(r, 60000));
-                if (currentModelIndex < MODELS.length - 1) currentModelIndex++;
+                currentModelIndex++;
                 attempt--; 
             } else {
                 await new Promise(r => setTimeout(r, 20000));
@@ -256,50 +304,50 @@ async function generateBlogFromNews(article, isRefresh = false, existingContent 
 
     if (!metadata) return null;
 
-    // --- PHASE 2: 2000-WORD MASTERPIECE (HTML) ---
-    const bodyPrompt = `You are an Elite Investigative Journalist and Authority Author for DailyUpdatesHub.in.
-    STRATEGY: ${JSON.stringify(metadata)}
-    CORE SIGNAL: "${article.description}"
-    INTERNAL LINKS: ${internalLinksContext}
-    
-    GOAL: Write a 1500-2000 word authoritative investigative report.
-    
-    MANDATORY STRUCTURE & RULES:
-    1. H1: ${metadata.title}
-    2. BYLINE: "By AI Editorial Team | ${currentDate}"
-    3. TOC: <nav><ul>(Auto-generate list from outline)</ul></nav>
-    4. HOOK: Strong 100-word opening story or stat.
-    5. INDIA-FIRST BIAS: Explain local impact, include Indian stats/context.
-    6. E-E-A-T: Cite data, expert-style analysis, and market ripple effects.
-    7. RICH FORMATTING: Use H2, H3, <blockquote>, <ul>, and <table> for data. Short paras (3-5 lines).
-    8. INTERNAL LINKS: Embed at least 5 links from context.
-    9. EXTERNAL LINKS: List 5 authoritative sources (Reuters/Wired/ET) at the bottom.
-    10. FAQ: Use <details><summary> for the FAQ section.
-    11. WORD COUNT: Aim for exactly 1500-2000 words of dense, high-value text.
-    
-    Return the content as RAW PROFESSIONAL HTML. No markdown.`;
+    // --- PHASE 2: INVESTIGATIVE MASTERPIECE ---
+    const bodyPrompt = `You are a senior investigative journalist writing for DailyUpdatesHub.in.
 
-    console.log(`[AI Blogger] 🖋️ Phase 2: Writing 2000-word Investigative Masterpiece...`);
+ARTICLE STRATEGY: ${JSON.stringify(metadata)}
+NEWS SIGNAL: ${article.description}
+
+Write a professional 1500-2000 word news article.
+Style: Wired, Bloomberg, TechCrunch, The Verge.
+
+STRUCTURE:
+H1: ${metadata.title}
+By Mohit Kulkarni | Published: ${currentDate}
+
+[Table of Contents]
+Introduction explaining why the story is important TODAY.
+Main sections based on the outline.
+Explain clearly: What happened, Why it matters, Industry reaction, Market impact, Tech/Science behind it, Impact on India, Future implications.
+Add: statistics, expert style analysis, examples, real-world context.
+
+SEO REQUIREMENTS: Natural keyword usage. 
+FORMAT: RAW HTML (h2, h3, p, ul, blockquote).
+
+At the end include:
+- FAQ section with 5 questions
+- Suggested internal links section (CONTEXT: ${internalLinksContext})
+- External references section (Reuters, MIT, Harvard, IEEE, Economic Times)
+
+IMPORTANT: Word count MUST be between 1500 and 2000.
+Return ONLY RAW HTML.`;
+
     let bodyContent = '';
     for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
         const modelName = MODELS[currentModelIndex];
         try {
-            // Use maximum tokens to ensure we get the full 2000 words
-            const model = genAI.getGenerativeModel({ 
-                model: modelName, 
-                generationConfig: { temperature: 0.7, maxOutputTokens: 8192 } 
-            });
+            const model = genAI.getGenerativeModel({ model: modelName, generationConfig: { temperature: 0.7, maxOutputTokens: 8192 } });
             const result = await model.generateContent(bodyPrompt);
             bodyContent = result.response.text().replace(/```html|```/g, '').trim();
-            
-            // Validate length (approx 5000+ chars for 1500+ words)
             if (bodyContent.length > 5000) break; 
-            console.warn('[AI Blogger] Narrative too thin, retrying for depth...');
+            console.warn(`[AI Blogger] Narrative too short for ${variant}, retrying...`);
         } catch (err) {
             const status = err.response?.status || err.status;
-            if (status === 429 || err.message.includes('429')) {
+            if ((status === 429 || err.message.includes('429')) && currentModelIndex < MODELS.length - 1) {
                 await new Promise(r => setTimeout(r, 60000));
-                if (currentModelIndex < MODELS.length - 1) currentModelIndex++;
+                currentModelIndex++;
                 attempt--;
             } else {
                 await new Promise(r => setTimeout(r, 20000));
@@ -309,7 +357,6 @@ async function generateBlogFromNews(article, isRefresh = false, existingContent 
 
     if (bodyContent) {
         const allKeywords = [metadata.focus_keyword, ...(metadata.secondary_keywords || [])];
-        console.log(`[AI Blogger] ✅ Generation Success: ${bodyContent.length} chars (~${Math.round(bodyContent.length/6)} words)`);
         return { ...metadata, focus_keywords: allKeywords, content: bodyContent };
     }
     return null;
@@ -335,7 +382,7 @@ async function handleTags(postId, tags) {
 
 async function saveDraftPost(data, authorId, categoryId) {
     try {
-        const [recentPosts] = await pool.query('SELECT title, slug FROM posts ORDER BY created_at DESC LIMIT 50');
+        const [recentPosts] = await pool.query('SELECT title, slug FROM posts ORDER BY created_at DESC LIMIT 150');
         for (const p of recentPosts) {
             if (compareSimilarity(data.title, p.title) > 0.85) {
                 console.log(`[AI Blogger] ⏩ SIMILARITY DETECTED: "${data.title}" matches "${p.title}"`);
@@ -359,7 +406,7 @@ async function saveDraftPost(data, authorId, categoryId) {
         );
 
         await handleTags(res.insertId, data.tags);
-        console.log(`[AI Blogger] ✨ HIGH-AUTHORITY DRAFT SAVED: ID ${res.insertId}`);
+        console.log(`[AI Blogger] ✨ DRAFT SAVED: ID ${res.insertId} - "${data.title}"`);
         return res.insertId;
     } catch (err) {
         console.error('[AI Blogger] DB Error:', err.message);
@@ -381,7 +428,7 @@ async function refreshOldContent() {
         if (!posts.length) return;
 
         console.log(`[AI Blogger] 🧬 Refreshing Legacy Content: "${posts[0].title}"`);
-        const updatedData = await generateBlogFromNews({ title: posts[0].title, description: 'Updating for content freshness' }, true, posts[0].content);
+        const updatedData = await generateBlogFromNews({ title: posts[0].title, description: 'Updating for content freshness' });
 
         if (updatedData) {
             await pool.query('UPDATE posts SET content = ?, updated_at = NOW() WHERE id = ?', [updatedData.content, posts[0].id]);
@@ -392,9 +439,9 @@ async function refreshOldContent() {
     }
 }
 
-async function runAIBlogger(count = 1) {
+async function runAIBlogger(count = 5) {
     const start = Date.now();
-    console.log(`[AI Blogger] 🚀 PRODUCTION PIPELINE START. TARGET: ${count}`);
+    console.log(`[AI Blogger] 🚀 PRODUCTION PIPELINE START. TARGET: ${count} News Signals (x3 Multiplier)`);
 
     try {
         const news = await fetchTopNews(count);
@@ -406,18 +453,31 @@ async function runAIBlogger(count = 1) {
 
         let generated = 0;
         for (const article of news) {
-            const data = await generateBlogFromNews(article);
-            if (!data) continue;
+            // Traffic Multiplier: Generate 3 types of articles for each news signal
+            const variants = ['primary', 'explainer', 'comparison'];
+            
+            for (const variant of variants) {
+                console.log(`[AI Blogger] 🧬 Generating ${variant.toUpperCase()} for "${article.title}"...`);
+                const data = await generateBlogFromNews(article, variant);
+                if (!data) continue;
 
-            const [cat] = await pool.query('SELECT id FROM categories WHERE name = ?', [data.topic_cluster || 'Technology']);
-            const categoryId = cat[0]?.id || fallbackId;
+                // Dynamically find or use fallback category
+                let targetCategory = data.topic_cluster;
+                if (targetCategory && targetCategory.includes('|')) targetCategory = targetCategory.split('|')[0].trim();
+                
+                const [cat] = await pool.query('SELECT id FROM categories WHERE name = ?', [targetCategory || 'Technology']);
+                const categoryId = cat[0]?.id || fallbackId;
 
-            const result = await saveDraftPost(data, authorId, categoryId);
-            if (result) generated++;
+                const result = await saveDraftPost(data, authorId, categoryId);
+                if (result) generated++;
+
+                // Stagger variants to avoid API bursts
+                await new Promise(r => setTimeout(r, 30000));
+            }
 
             if (news.indexOf(article) < news.length - 1) {
-                console.log('[AI Blogger] ⏳ Staggering next article by 120s to ensure quota freshness...');
-                await new Promise(r => setTimeout(r, 120000));
+                console.log('[AI Blogger] ⏳ Cooling down 90s before next News Signal...');
+                await new Promise(r => setTimeout(r, 90000));
             }
         }
 
