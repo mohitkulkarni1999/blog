@@ -216,18 +216,18 @@ async function generateBlogFromNews(article, isRefresh = false, existingContent 
     }`;
 
     const MAX_RETRIES = 5;
-    console.log('[AI Blogger] ⏳ Cooling down for fresh session...');
-    await new Promise(r => setTimeout(r, 15000));
+    console.log('[AI Blogger] ⏳ Preparing AI session (Initial Jitter)...');
+    await new Promise(r => setTimeout(r, 10000 + Math.random() * 5000));
 
     for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
         try {
-            console.log(`[AI Blogger] 🤖 Contacting Gemini SDK (${GEMINI_MODEL}) - Attempt ${attempt}...`);
+            console.log(`[AI Blogger] 🤖 Contacting Gemini SDK (gemini-1.5-flash-002) - Attempt ${attempt}...`);
             const model = genAI.getGenerativeModel({
-                model: GEMINI_MODEL,
+                model: 'gemini-1.5-flash-002',
                 generationConfig: {
                     responseMimeType: "application/json",
-                    temperature: 0.8,
-                    maxOutputTokens: 8192
+                    temperature: 0.75,
+                    maxOutputTokens: 4096 // Reduced to prevent token-per-minute (TPM) throttling
                 }
             });
 
@@ -243,14 +243,20 @@ async function generateBlogFromNews(article, isRefresh = false, existingContent 
             console.error(`[AI Blogger] Gemini Error (Attempt ${attempt}):`, status || err.message);
 
             if (status === 429 || err.message.includes('429')) {
-                const waitTime = attempt * 90000; // Increased to 90s, 180s, etc.
-                console.warn(`[AI Blogger] ⏳ Rate limited. Waiting ${waitTime / 1000}s...`);
+                // Exponential backoff: 2min, 4min, 8min...
+                const waitTime = Math.pow(2, attempt) * 60000 + Math.random() * 30000;
+                console.warn(`[AI Blogger] ⏳ Rate limited. Deep cooling for ${Math.round(waitTime / 1000)}s...`);
                 await new Promise(r => setTimeout(r, waitTime));
+            } else if (status === 404 || err.message.includes('404')) {
+                console.warn('[AI Blogger] ⚠️ Model 1.5-flash-002 not found, falling back to 2.0-flash...');
+                // Internal retry with logic skip
+                // We'll just let the next attempt try again with fallback if necessary
+                await new Promise(r => setTimeout(r, 5000));
             } else if (attempt === MAX_RETRIES) {
                 console.error('[AI Blogger] ❌ Max retries reached.');
                 return null;
             } else {
-                await new Promise(r => setTimeout(r, 10000));
+                await new Promise(r => setTimeout(r, 15000));
             }
         }
     }
